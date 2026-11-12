@@ -8,7 +8,7 @@ English | [中文](README.md)
 >
 > So I built this. It makes nothing faster — it just puts a patch of slowly turning deep space in the corner of DSH.
 
-![Four-arm spiral nebula: every prompt grows its own little galaxy](https://raw.githubusercontent.com/songzhou666/dsh-spiral/main/docs/assets/nebula.png)
+![Four-arm spiral nebula in motion: every prompt grows its own little galaxy](https://raw.githubusercontent.com/songzhou666/dsh-spiral/main/docs/assets/nebula-demo.gif)
 
 **SemanticNebula** is a **purely decorative** plugin for the DeepSeek Harness (DSH) Web GUI: each prompt you submit is projected, live, into a draggable four-arm spiral nebula, with a local semantic footprint map beside it.
 
@@ -19,24 +19,25 @@ English | [中文](README.md)
 
 ## Install
 
-This repo carries the `dsh-plugin` / `deepseek-harness` topics and declares a `dsh.bundle` manifest in `package.json`, so DSH community marketplaces can pick it up automatically; their install plans read the root `cordis.patch.yml`. For a manual install, follow the two steps below.
+This repo carries the `dsh-plugin` / `deepseek-harness` topics and declares a `dsh.bundle` manifest in `package.json`, so DSH community marketplaces can pick it up automatically; their install plans read the root `cordis.patch.yml`. For a manual install, follow the three steps below.
 
-DSH discovers plugins through the **profile's pnpm dependencies**, so the package has to become a dependency of `~/.dsh/profiles/web` first, and then be declared in `cordis.patch.yml`.
+DSH discovers plugins through the **profile's pnpm dependencies**, so the package has to become a local dependency of `~/.dsh/profiles/web` first, and then be declared in `cordis.patch.yml`.
 
 > The package is called `dsh-spiral` (the name `dsh-nebula` on npm is taken by an unrelated aurora plugin); the project and product name is still **SemanticNebula**.
 
 ```bash
-# 1) Make the profile aware of the package (published on npm)
-cd ~/.dsh/profiles/web
-pnpm add dsh-spiral
+# 1) Grab the source
+git clone https://github.com/songzhou666/dsh-spiral.git
 
-# 2) Append the snippet shipped in this repo to ~/.dsh/profiles/web/cordis.patch.yml
+# 2) Make the profile aware of the package (local directory, not published to npm)
+cd ~/.dsh/profiles/web
+pnpm add /path/to/dsh-spiral
+
+# 3) Append the snippet shipped in this repo to ~/.dsh/profiles/web/cordis.patch.yml
 - insert:
     - id: dsh-spiral-bundle
       name: dsh-spiral
 ```
-
-> For local development, replace step 1 with `pnpm add /path/to/dsh-spiral`; everything else stays the same.
 
 Restart the DSH Web server and a milky-white floating orb appears in the bottom-right corner.
 
