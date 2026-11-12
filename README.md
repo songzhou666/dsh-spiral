@@ -8,7 +8,7 @@
 >
 > 于是有了这个插件。它不提高任何效率——只是让 DSH 的角落里，有一片会自己转的深空。
 
-![四臂旋涡星云：每条提示词都会长成一片自己的星系](docs/assets/nebula.png)
+![四臂旋涡星云：每条提示词都会长成一片自己的星系](https://raw.githubusercontent.com/songzhou666/dsh-spiral/main/docs/assets/nebula.png)
 
 **SemanticNebula · 语义星云** 是一个 **纯装饰性** 的 DeepSeek Harness (DSH) Web GUI 插件：把你在输入框里提交的每一条提示词，实时投影成一片可以拖动的四臂旋涡星云，并在旁边绘制一张本地语义足迹图。
 
@@ -19,25 +19,24 @@
 
 ## 安装
 
-本仓库已标记 `dsh-plugin` / `deepseek-harness` topic，并在 `package.json` 中声明 `dsh.bundle` manifest，可被 DSH 社区插件市场自动收录；市场的安装计划会读取仓库根目录的 `cordis.patch.yml`。手动安装按下面三步走。
+本仓库已标记 `dsh-plugin` / `deepseek-harness` topic，并在 `package.json` 中声明 `dsh.bundle` manifest，可被 DSH 社区插件市场自动收录；市场的安装计划会读取仓库根目录的 `cordis.patch.yml`。手动安装按下面两步走。
 
-DSH 通过 **profile 的 pnpm 依赖** 发现插件，所以插件包必须先成为 `~/.dsh/profiles/web` 的本地依赖，再在 `cordis.patch.yml` 中声明。
+DSH 通过 **profile 的 pnpm 依赖** 发现插件，所以插件包必须先成为 `~/.dsh/profiles/web` 的依赖，再在 `cordis.patch.yml` 中声明。
 
 > 包名是 `dsh-spiral`（npm 上的 `dsh-nebula` 已被另一个同名极光插件占用），项目/产品名仍然叫 **SemanticNebula · 语义星云**。
 
 ```bash
-# 1) 取回源码
-git clone https://github.com/songzhou666/dsh-spiral.git
-
-# 2) 让 profile 认识这个包（本地目录，不发布到 npm）
+# 1) 让 profile 认识这个包（npm 正式包）
 cd ~/.dsh/profiles/web
-pnpm add /path/to/dsh-spiral
+pnpm add dsh-spiral
 
-# 3) 在 ~/.dsh/profiles/web/cordis.patch.yml 末尾追加仓库自带的片段
+# 2) 在 ~/.dsh/profiles/web/cordis.patch.yml 末尾追加仓库自带的片段
 - insert:
     - id: dsh-spiral-bundle
       name: dsh-spiral
 ```
+
+> 开发时想用本地源码：把第 1 步换成 `pnpm add /path/to/dsh-spiral`，其余不变。
 
 重启 DSH Web 服务后，右下角会出现一枚乳白色悬浮球。
 
