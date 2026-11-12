@@ -2,13 +2,15 @@
 
 English | [中文](README.md)
 
+`dsh-plugin` · `deepseek-harness` · DSH Web GUI · prompt visualization · canvas2d · nebula · generative art · 语义星云 · 提示词可视化
+
 > I loved the night sky when I was a kid. Years later I spend my days talking to AI models, and one day it occurred to me: why not let every sentence grow one more star up there?
 >
 > So I built this. It makes nothing faster — it just puts a patch of slowly turning deep space in the corner of DSH.
 
 ![Four-arm spiral nebula: every prompt grows its own little galaxy](docs/assets/nebula.png)
 
-A **purely decorative** plugin for the DSH Web GUI: each prompt you submit is projected, live, into a draggable deep-space nebula, with a local semantic footprint map beside it.
+**SemanticNebula** is a **purely decorative** plugin for the DeepSeek Harness (DSH) Web GUI: each prompt you submit is projected, live, into a draggable four-arm spiral nebula, with a local semantic footprint map beside it.
 
 - It never intercepts or wraps the DSH composer
 - It never reads or uploads message content
@@ -16,6 +18,8 @@ A **purely decorative** plugin for the DSH Web GUI: each prompt you submit is pr
 - Client bundle under 130 KB, no runtime dependencies
 
 ## Install
+
+This repo carries the `dsh-plugin` / `deepseek-harness` topics and declares a `dsh.bundle` manifest in `package.json`, so DSH community marketplaces can pick it up automatically; their install plans read the root `cordis.patch.yml`. For a manual install, follow the three steps below.
 
 DSH discovers plugins through the **profile's pnpm dependencies**, so the package has to become a local dependency of `~/.dsh/profiles/web` first, and then be declared in `cordis.patch.yml`.
 

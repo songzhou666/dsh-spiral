@@ -1,0 +1,11 @@
+# Submission draft for awesome-dsh-plugin/awesome-dsh-plugin
+# Target path: data/plugins/songzhou666__dsh-spiral.yml
+# CI requires the repo to be at least 1 day old (created 2026-11-12 14:08 +08:00),
+# plus a dsh.bundle manifest and the dsh-plugin GitHub topic. Both are already in place.
+url: https://github.com/songzhou666/dsh-spiral
+name: songzhou666/dsh-spiral
+category: fun
+description:
+  en: "A decorative DSH Web GUI panel that turns every submitted prompt into a slowly rotating four-arm spiral nebula with a local semantic footprint map."
+  zh: "纯装饰性 DSH Web GUI 面板：把每条提示词投影成一片会自转的四臂旋涡星云，并在旁边绘制本地语义足迹图。"
+icon: https://raw.githubusercontent.com/songzhou666/dsh-spiral/main/docs/assets/social-preview.png

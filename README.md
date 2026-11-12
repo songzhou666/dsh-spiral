@@ -2,13 +2,15 @@
 
 [English](README.en.md) | 中文
 
+`dsh-plugin` · `deepseek-harness` · DSH Web GUI · prompt visualization · canvas2d · nebula · generative art · 语义星云 · 提示词可视化
+
 > 小时候我很喜欢星空。后来每天都在跟 AI 说话，忽然想：不如让每句话，在天上多长出一颗星。
 >
 > 于是有了这个插件。它不提高任何效率——只是让 DSH 的角落里，有一片会自己转的深空。
 
 ![四臂旋涡星云：每条提示词都会长成一片自己的星系](docs/assets/nebula.png)
 
-一个 **纯装饰性** 的 DSH Web GUI 插件：把你在输入框里提交的提示词，实时投影成一片可以拖动的深空星云，并在旁边绘制一张本地语义足迹图。
+**SemanticNebula · 语义星云** 是一个 **纯装饰性** 的 DeepSeek Harness (DSH) Web GUI 插件：把你在输入框里提交的每一条提示词，实时投影成一片可以拖动的四臂旋涡星云，并在旁边绘制一张本地语义足迹图。
 
 - 不拦截、不包装 DSH 的输入框
 - 不读取、不上传任何消息内容
@@ -16,6 +18,8 @@
 - 客户端产物 < 130 KB，无运行时依赖
 
 ## 安装
+
+本仓库已标记 `dsh-plugin` / `deepseek-harness` topic，并在 `package.json` 中声明 `dsh.bundle` manifest，可被 DSH 社区插件市场自动收录；市场的安装计划会读取仓库根目录的 `cordis.patch.yml`。手动安装按下面三步走。
 
 DSH 通过 **profile 的 pnpm 依赖** 发现插件，所以插件包必须先成为 `~/.dsh/profiles/web` 的本地依赖，再在 `cordis.patch.yml` 中声明。
 
