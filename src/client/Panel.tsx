@@ -274,7 +274,7 @@ export function Panel({ face, onClose, onHeadPointerDown, onHeadPointerMove, onH
                   32768 · 极致
                 </button>
               </div>
-              <p className="dnp-note">只决定绘制多少尘埃与星点（约 880 / 1090 / 1280 个）；几何与轨迹始终按同一分辨率计算，换档不会让星云变形或移位。</p>
+              <p className="dnp-note">只决定绘制多少尘埃与星点：旋臂内约 880 / 1090 / 1280 个，臂间空隙再铺 220 / 380 / 560 个；几何与轨迹始终按同一分辨率计算，换档不会让星云变形或移位。</p>
             </div>
 
             <div className="dnp-group">

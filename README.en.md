@@ -15,7 +15,7 @@ English | [中文](README.md)
 - It never intercepts or wraps the DSH composer
 - It never reads or uploads message content
 - No network, no model, no inference calls (the embedding is a local deterministic hash — see *Trade-offs*)
-- Client bundle about 141 KB, no runtime dependencies
+- Client bundle about 143 KB, no runtime dependencies
 
 ## Install
 
@@ -58,6 +58,7 @@ Atmosphere details (all part of the optional "feel" layer; none of them feed any
 
 - **Breathing** — the whole disc scales ±1.6% on a ~30 s cycle, so a still frame never reads as a wallpaper.
 - **Outward beads** — one faint bead per arm drifts outward while riding the pattern, reading as star formation in a density wave; its direction always matches the spin.
+- **Inter-arm dust** — the gaps between the arms are not empty: each holds a scatter of fine points whose shear is far softer than the arms (`WIND * 0.34`), so it reads as thin gas co-rotating with the disc rather than as a second density wave. The count follows the embedding-dimension tier (220 / 380 / 560), so a higher setting fills the gaps further, not just the arms.
 - **Meteors** — roughly every 10 s a meteor crosses a corner of the frame: one gradient line plus one sprite.
 - **Soft core** — a wide dim halo plus a small nucleus, with the four flares shaped as diamonds that taper to a point; every layer stays under the additive clipping threshold, so the centre reads as one star instead of a hard white disc with a cross. The arms work the same way: several strokes from wide to narrow, each with a radial fade, so no ribbon is ever sheared off flat.
 - **Film grain** — a 128² noise tile composited with `overlay`; it adds texture to the dark areas and doubles as dithering against 8-bit banding.
@@ -92,7 +93,7 @@ The gear in the window's top-right corner opens settings:
 | Enable prompt visualisation | Master switch; turning it off goes dormant immediately and stops capturing submissions |
 | Auto-open on submit | Fires once for a new submission in the current session |
 | Keep semantic footprint | Writes to this machine's `localStorage`, visible only on this device |
-| Embedding dimensions | 8192 standard / 16384 fine / 32768 maximum (only changes how much detail is drawn, never the geometry) |
+| Embedding dimensions | 8192 standard / 16384 fine / 32768 maximum (only changes how much detail is drawn, including the fill between the arms; never the geometry) |
 | Palette | Deep space / Aurora / Corona |
 | Motion | Always full (default) / Follow system |
 | Speed | Low / Medium (default) / High |
@@ -193,7 +194,7 @@ It measures angular velocity with a cyclic cross-correlation of full-turn angula
 
 ## Trade-offs
 
-The original plan — a `bge-small-zh-v1.5-int8.onnx` local embedding plus a precomputed UMAP terrain — was simplified in this delivery to a **deterministic local hash embedding** with **fixed projection geometry**. No model file is loaded, so semantic fidelity is modest, but the cost is zero network, zero model overhead and about 141 KB. If you later want stronger semantic grouping, replace `analyze()` in `engine.ts`; the view layer needs no changes.
+The original plan — a `bge-small-zh-v1.5-int8.onnx` local embedding plus a precomputed UMAP terrain — was simplified in this delivery to a **deterministic local hash embedding** with **fixed projection geometry**. No model file is loaded, so semantic fidelity is modest, but the cost is zero network, zero model overhead and about 143 KB. If you later want stronger semantic grouping, replace `analyze()` in `engine.ts`; the view layer needs no changes.
 
 ## License
 

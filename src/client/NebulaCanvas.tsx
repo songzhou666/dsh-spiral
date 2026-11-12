@@ -49,6 +49,16 @@ interface Mote {
   readonly tint: number
 }
 
+/** Faint material in the gaps between the arms. */
+interface GapParticle {
+  readonly t: number
+  readonly theta: number
+  readonly band: number
+  readonly size: number
+  readonly phase: number
+  readonly tint: number
+}
+
 const STAR_TINTS = ['#dfeaff', '#bcd7ff', '#ffe9c9', '#ffffff'] as const
 const PERSPECTIVE = 0.64
 
@@ -156,6 +166,24 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
         size: 1.4 + rng() * 3.8,
         phase: rng() * TAU,
         tint: Math.floor(rng() * 4),
+      })
+    }
+
+    // Inter-arm material. A real disc is never clean between its arms: there is
+    // always diffuse gas, dust and a scatter of foreground stars there, and the
+    // gap is exactly where a nebula reads as "thin" rather than as empty. These
+    // points get a much softer shear than the arms (`WIND * 0.34`), so the haze
+    // reads as loose gas drifting with the disc instead of a second density
+    // wave — the arms still win the eye, which keeps the winding legible.
+    const gaps: GapParticle[] = []
+    for (let i = 0; i < 560; i++) {
+      gaps.push({
+        t: 0.07 + Math.pow(rng(), 0.74) * 0.93,
+        theta: rng() * TAU,
+        band: clamp(Math.floor(rng() * 255), 0, 255),
+        size: 0.4 + Math.pow(rng(), 1.9) * 2.4,
+        phase: rng() * TAU,
+        tint: Math.floor(rng() * 3),
       })
     }
 
@@ -463,6 +491,37 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
             ctx.globalAlpha = base * weight
             ctx.drawImage(sprites.get(scheme.arms[tint]!), x - spread / 2, y - spread / 2, spread, spread)
           }
+        }
+      }
+
+      // Inter-arm haze. The gaps get their own dust, and how much of it is drawn
+      // follows the embed-dimension tier, so a higher setting fills the space
+      // between the arms instead of only thickening the arms themselves. It
+      // turns with the disc (the same `angle * 0.8` as the arms), so it can
+      // never read as counter-rotating.
+      const gapCount = state.settings.dims === 32768 ? 560 : state.settings.dims === 16384 ? 380 : 220
+      for (let index = 0; index < gapCount; index++) {
+        const gap = gaps[index]!
+        const pv = profile[gap.band]!
+        const theta = gap.theta + gap.t * WIND * 0.34 + pv * WIND_WOBBLE * 0.55 + angle * 0.8
+        const r = radius * (0.07 + gap.t * 1.0) * (0.94 + pv * 0.12)
+        const x = cx + Math.cos(theta) * r
+        const y = cy + Math.sin(theta) * r * PERSPECTIVE
+        const fade = (0.28 + 0.72 * Math.min(1, gap.t * 2.2)) * (0.35 + enter * 0.65)
+        const clump = 0.5 + 0.5 * Math.sin(gap.theta * 2.7 + gap.t * 6.1 + gap.phase * 0.4)
+        const breathe = 1 + Math.sin(now * 0.0006 + gap.phase) * 0.05
+        // Powder, not fog: a couple of pixels each, at a low alpha. Small points
+        // are what make the gaps read as scattered matter; a big soft stamp here
+        // would only wash the disc into an even haze.
+        const size = (2.2 + gap.t * 5 + pv * 3) * (0.7 + gap.size * 0.55) * breathe
+        ctx.globalAlpha = (0.045 + pv * 0.1) * fade * (0.4 + clump * 0.8)
+        ctx.drawImage(sprites.get(scheme.dust[gap.tint]!), x - size / 2, y - size / 2, size, size)
+        // One in six keeps a wide, very faint bloom under it, so the powder sits
+        // on a thin floor of gas instead of floating on black.
+        if (index % 6 === 0) {
+          const halo = size * 6
+          ctx.globalAlpha = 0.012 * fade * (0.4 + clump)
+          ctx.drawImage(sprites.get(scheme.dust[gap.tint]!), x - halo / 2, y - halo / 2, halo, halo)
         }
       }
 
