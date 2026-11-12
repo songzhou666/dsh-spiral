@@ -57,6 +57,12 @@ Atmosphere details (all part of the optional "feel" layer; none of them feed any
 - **Meteors** — roughly every 10 s a meteor crosses a corner of the frame: one gradient line plus one sprite.
 - **Film grain** — a 128² noise tile composited with `overlay`; it adds texture to the dark areas and doubles as dithering against 8-bit banding.
 
+## Appearance
+
+The card itself follows DSH's light / dark appearance: surface, ink, hairlines, inputs and selected states all come from the host design tokens (`--dsw-alias-bg-layer-1`, `--dsw-alias-label-primary`, `--dsw-alias-border-l2`, …), so light is white glass, dark is smoked glass, and custom themes are followed as well. The adaptation is pure CSS — the host flips `data-ds-dark-theme` on `<body>` and the plugin reads that attribute; there is no theme subscription and no extra render.
+
+Both canvases stay dark in either appearance: space is always dark outside the porthole, only the frame is repainted. Star colours still come from the palette (Deep space / Aurora / Corona) and are not overridden by the theme.
+
 ## Rotation and physics
 
 The picture obeys the two basic constraints of a spiral galaxy, and no layer ever counter-rotates:
