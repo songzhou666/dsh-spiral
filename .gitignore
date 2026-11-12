@@ -1,0 +1,12 @@
+# dependencies
+node_modules/
+
+# build/verify leftovers (see scripts/verify-*.mjs)
+.shots/
+.cache/
+*.log
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/

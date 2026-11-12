@@ -1,0 +1,83 @@
+{
+  "name": "dsh-nebula",
+  "version": "0.1.2",
+  "description": "SemanticNebula (语义星云) — a purely decorative prompt visualizer for the DSH Web GUI: every prompt you submit becomes a slowly turning four-arm spiral galaxy. Local hashing embedding, zero network, zero model files, < 130 KB.",
+  "type": "module",
+  "author": "songzhou666",
+  "license": "MIT",
+  "icon": "./icon.svg",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/songzhou666/dsh-nebula.git"
+  },
+  "homepage": "https://github.com/songzhou666/dsh-nebula#readme",
+  "bugs": {
+    "url": "https://github.com/songzhou666/dsh-nebula/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "dsh-bundle",
+    "nebula",
+    "galaxy",
+    "spiral-galaxy",
+    "canvas2d",
+    "decorative",
+    "visualization",
+    "prompt-visualization",
+    "semantic",
+    "embedding",
+    "react",
+    "typescript",
+    "星云"
+  ],
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js"
+  },
+  "files": [
+    "lib",
+    "src",
+    "scripts",
+    "docs",
+    "cordis.patch.yml",
+    "dev.patch.yml",
+    "icon.svg",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "dsh": ">=0.2.0-rc.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "@deepseek-ai/dsh-api-session-controller"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "test": "node scripts/test-engine.mjs && node scripts/test-controller.mjs",
+    "verify": "node scripts/verify-physics.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
