@@ -169,8 +169,15 @@ face.setPalette(2)
 check('palette applied', controller.settings().palette, 2)
 check('palette visible in snapshot', face.getSnapshot().settings.palette, 2)
 
-face.setDims(5120)
-check('dims applied', controller.settings().dims, 5120)
+// 32768 is the top tier: it must persist like any other value, and the retired
+// 5120 must land on 8192 instead of surviving as a stale setting.
+face.setDims(32768)
+check('dims applied', controller.settings().dims, 32768)
+check('dims visible in snapshot', face.getSnapshot().settings.dims, 32768)
+check('dims persisted', JSON.parse(window.localStorage.getItem('dsh-nebula:settings:v1')).dims, 32768)
+face.setDims(16384)
+check('dims mid tier applied', controller.settings().dims, 16384)
+face.setDims(8192)
 
 check('motion defaults to full', face.getSnapshot().settings.motion, 'full')
 face.setMotion('auto')
@@ -200,9 +207,13 @@ check('answer roam frame', answerRoam !== undefined, true)
 face.stop()
 
 await new Promise((resolveSleep) => setTimeout(resolveSleep, 420))
+const staleSeed = JSON.stringify({ ...controller.settings(), dims: 5120 })
+window.localStorage.setItem('dsh-nebula:settings:v1', staleSeed)
 const restored = new NebulaController(ctx)
 const restoredFace = restored.faceFor('s1')
 check('history persisted', restoredFace.getSnapshot().points.length >= 4, true)
+// The retired 5120 tier must land on 8192 rather than survive as a dead setting.
+check('retired 5120 migrates to 8192', restoredFace.getSnapshot().settings.dims, 8192)
 restored.dispose()
 
 face.clear()

@@ -27,6 +27,7 @@ const argv = process.argv.slice(2)
 const reduced = argv.includes('--reduced')
 const motion = argv.find((arg) => arg.startsWith('--motion='))?.slice('--motion='.length) ?? 'auto'
 const speed = argv.find((arg) => arg.startsWith('--speed='))?.slice('--speed='.length) ?? 'mid'
+const dims = Number(argv.find((arg) => arg.startsWith('--dims='))?.slice('--dims='.length) ?? 8192)
 /** Which invariant set this run asserts; see the check block at the bottom. */
 const mode = reduced && motion !== 'full' ? 'calm' : 'full'
 /** Expected angular velocity window for this run, in degrees per second. */
@@ -93,6 +94,7 @@ await page.setContent(`<!doctype html><meta charset="utf-8">
 if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' })
 if (motion !== 'auto') await page.evaluate((value) => { window.__nebulaMotion = value }, motion)
 if (speed !== 'mid') await page.evaluate((value) => { window.__nebulaSpeed = value }, speed)
+if (dims !== 8192) await page.evaluate((value) => { window.__nebulaDims = value }, dims)
 await page.addScriptTag({ content: bundle })
 
 if ((await page.evaluate(() => window.__nebulaMounted === true)) !== true) {
@@ -280,6 +282,7 @@ const fps = await page.evaluate(() => new Promise((resolve) => {
 const report = {
   canvas: `${canvasSize.width}x${canvasSize.height}`,
   speed,
+  dims,
   clockwiseDegreesPerSecond: Number(rotation.advanced.toFixed(1)),
   rotationCorrelation: Number(rotation.correlation.toFixed(3)),
   windingDegreesPerDiscRadius: Number(winding.toFixed(0)),

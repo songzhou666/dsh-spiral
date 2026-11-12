@@ -100,7 +100,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
     const rng = makeRng(0x2f8a1c3d)
 
     const stars: Star[] = []
-    for (let i = 0; i < 140; i++) {
+    for (let i = 0; i < 200; i++) {
       stars.push({
         x: rng(),
         y: rng(),
@@ -111,9 +111,13 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       })
     }
 
+    // Interleaved by radius step rather than by arm: the embed-dimension setting
+    // draws a prefix of this list, and a prefix of an arm-major list would drop
+    // whole arms and leave the disc looking one-armed. Round-robin keeps every
+    // prefix balanced across the four arms.
     const arms: ArmParticle[] = []
-    for (let arm = 0; arm < 4; arm++) {
-      for (let i = 0; i < 220; i++) {
+    for (let i = 0; i < 320; i++) {
+      for (let arm = 0; arm < 4; arm++) {
         const t = 0.04 + Math.pow(rng(), 0.64) * 0.96
         const tint = clamp(Math.floor(t * 3.15 + (rng() - 0.5) * 0.9), 0, 3)
         arms.push({
@@ -248,7 +252,11 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
 
     const draw = (now: number): void => {
       const state = stateRef.current
-      const density = state.settings.dims === 8192 ? 1 : 0.62
+      // The embed-dimension setting is a render budget, not a second geometry:
+      // the profile is always solved at full resolution, and a higher setting
+      // draws more of the precomputed dust, stars and wisps. 8192 reproduces the
+      // historical density, so nothing changes for anyone who keeps the default.
+      const density = state.settings.dims === 32768 ? 1 : state.settings.dims === 16384 ? 0.85 : 0.69
       const wantedDpr = clamp(window.devicePixelRatio || 1, 1, 1.75)
       if (Math.abs(wantedDpr - dpr) > 0.01) dpr = wantedDpr
       const ctx = canvas.getContext('2d', { alpha: false })
@@ -586,7 +594,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       // gets its texture from the sheared wisps below: short arcs that follow
       // the flow at a constant radius, never a straight line pointing at the core.
       ctx.globalAlpha = 1
-      const wispCount = Math.floor(52 * density)
+      const wispCount = Math.floor(75 * density)
       for (let i = 0; i < wispCount; i++) {
         const pv = profile[(i * 11) % 256]!
         if (pv < 0.24) continue

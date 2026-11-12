@@ -21,7 +21,7 @@ buildSync({
 })
 
 const engine = await import(pathToFileURL(out).href)
-const { analyze, sequenceOf } = engine
+const { analyze, sequenceOf, EMBED_DIMS } = engine
 
 const prompts = [
   '帮我把这个插件的星云做得更梦幻一点，颜色要高级',
@@ -31,12 +31,17 @@ const prompts = [
 ]
 
 let ok = true
+// A dimension tier is a render budget only: every tier must place the prompt in
+// exactly the same spot and yield the same analysis, so switching tiers never
+// reshapes the nebula or moves a star on the map.
 for (const text of prompts) {
   const a = analyze(text, 8192)
-  const b = analyze(text, 5120)
-  const sameAxis = a.axis.every((value, index) => Math.abs(value - b.axis[index]) < 1e-9)
-  const sameMap = Math.abs(a.mapX - b.mapX) < 1e-9 && Math.abs(a.mapY - b.mapY) < 1e-9
-  const sameScheme = a.schemeBase === b.schemeBase && Math.abs(a.magnitude - b.magnitude) < 1e-9
+  const tiers = EMBED_DIMS.map((dims) => [dims, analyze(text, dims)])
+  const sameAxis = tiers.every(([, b]) => a.axis.every((value, index) => Math.abs(value - b.axis[index]) < 1e-9))
+  const sameMap = tiers.every(([, b]) => Math.abs(a.mapX - b.mapX) < 1e-9 && Math.abs(a.mapY - b.mapY) < 1e-9)
+  const sameScheme = tiers.every(
+    ([, b]) => a.schemeBase === b.schemeBase && Math.abs(a.magnitude - b.magnitude) < 1e-9,
+  )
   ok &&= sameAxis && sameMap && sameScheme
   console.log(
     sameAxis && sameMap && sameScheme ? 'PASS' : 'FAIL',

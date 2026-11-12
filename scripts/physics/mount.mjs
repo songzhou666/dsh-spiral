@@ -48,7 +48,7 @@ const settings = {
   enabled: true,
   autoOpen: true,
   persist: false,
-  dims: 8192,
+  dims: window.__nebulaDims ?? 8192,
   palette: 0,
   motion: window.__nebulaMotion ?? 'auto',
   speed: window.__nebulaSpeed ?? 'mid',

@@ -222,7 +222,9 @@ export function loadSettings(): NebulaSettings {
     return {
       enabled: typeof parsed.enabled === 'boolean' ? parsed.enabled : DEFAULT_SETTINGS.enabled,
       autoOpen: typeof parsed.autoOpen === 'boolean' ? parsed.autoOpen : DEFAULT_SETTINGS.autoOpen,
-      dims: parsed.dims === 5120 ? 5120 : 8192,
+      // 5120 is gone; anyone still holding it lands on 8192, which is the tier
+      // that reproduces the density they had (5120 drew fewer particles).
+      dims: parsed.dims === 16384 || parsed.dims === 32768 ? parsed.dims : 8192,
       palette: [0, 1, 2].includes(Number(parsed.palette)) ? Number(parsed.palette) : 0,
       persist: typeof parsed.persist === 'boolean' ? parsed.persist : DEFAULT_SETTINGS.persist,
       motion: parsed.motion === 'auto' ? 'auto' : 'full',

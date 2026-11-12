@@ -263,15 +263,18 @@ export function Panel({ face, onClose, onHeadPointerDown, onHeadPointerMove, onH
 
             <div className="dnp-group">
               <span className="dnp-group-label">嵌入维度</span>
-              <div className="dnp-seg">
+              <div className="dnp-seg" data-cols="3">
                 <button type="button" data-on={settings.dims === 8192} onClick={() => face.setDims(8192)}>
-                  8192 · 极致
+                  8192 · 标准
                 </button>
-                <button type="button" data-on={settings.dims === 5120} onClick={() => face.setDims(5120)}>
-                  5120 · 流畅
+                <button type="button" data-on={settings.dims === 16384} onClick={() => face.setDims(16384)}>
+                  16384 · 精细
+                </button>
+                <button type="button" data-on={settings.dims === 32768} onClick={() => face.setDims(32768)}>
+                  32768 · 极致
                 </button>
               </div>
-              <p className="dnp-note">几何始终按 8192 维计算；维度只改变粒子密度与细节，不改变星云形状。</p>
+              <p className="dnp-note">只决定绘制多少尘埃与星点（约 880 / 1090 / 1280 个）；几何与轨迹始终按同一分辨率计算，换档不会让星云变形或移位。</p>
             </div>
 
             <div className="dnp-group">

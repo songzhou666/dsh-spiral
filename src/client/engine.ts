@@ -5,13 +5,15 @@
  * high-dimensional vector, smoothed with an FFT Gaussian kernel, then folded
  * into a 256-band profile. The profile drives the nebula and is projected by a
  * fixed random basis into the 3D semantic map. The pipeline is dimension
- * invariant on purpose: 5120 and 8192 only change micro-detail.
+ * invariant on purpose: the embed-dimension setting only budgets how much of the
+ * precomputed detail is drawn, so switching it never moves a point or reshapes
+ * the nebula.
  */
 
-export type EmbeddingDims = 5120 | 8192
+export type EmbeddingDims = 8192 | 16384 | 32768
 
 export const PROFILE_BANDS = 256
-export const EMBED_DIMS: readonly EmbeddingDims[] = [8192, 5120]
+export const EMBED_DIMS: readonly EmbeddingDims[] = [8192, 16384, 32768]
 
 export interface NebulaScheme {
   readonly id: string
@@ -334,7 +336,7 @@ function embed(text: string, dims: EmbeddingDims): Float32Array {
   const norm = Math.sqrt(sum) || 1
   for (let i = 0; i < FFT_SIZE; i++) vector[i] = vector[i]! / norm
 
-  return dims === 8192 ? vector : vector.slice(0, dims)
+  return dims >= FFT_SIZE ? vector : vector.slice(0, dims)
 }
 
 /* ------------------------------------------------------------------ profile */
