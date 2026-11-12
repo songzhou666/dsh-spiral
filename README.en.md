@@ -68,10 +68,12 @@ Both canvases stay dark in either appearance: space is always dark outside the p
 
 The picture obeys the two basic constraints of a spiral galaxy, and no layer ever counter-rotates:
 
-- **Trailing arms** — the arms wind in the same direction the pattern spins (θ grows outward while `angle` increases monotonically), so the arms always trail the spin instead of reading as "spinning apart".
+- **Trailing arms** — `angle` grows monotonically (clockwise on screen) while the arm's `theta` gets *smaller* as it winds out (`WIND = -4`), so the outer end always sits one step of phase behind the inner one: the arm is the wake behind the spin. Flip the sign and the outer tip would cross any given azimuth before the inner part — that is a **leading** arm, an arm outrunning the rotation it belongs to.
 - **Rigid pattern, differential material** — the density wave itself rotates rigidly at one angular velocity, while the inner filaments run a little faster (`angle * 1.12`) and the outer motes a little slower (`angle * 0.25`): differential rotation, without winding the arms ever tighter.
 
-Earlier the `iris` / `ember` families flipped direction by `scheme.id`, pairing counter-clockwise spin with clockwise arms, and the angular velocity would jump whenever a roam crossed a frame (`mix` past 0.5) or the palette changed. Now `angle` is the single source of angular velocity: it accumulates monotonically, frame after frame, independent of the current palette.
+Why trailing and not leading: nearly every real spiral (M51, M101, …) trails. The classic argument is simple — differential rotation, fast inside and slow outside, shears a radial spoke into a curve with exactly one handedness, the trailing one; leading arms need an external disturbance and are the exception (NGC 4622 is the famous one). So trailing is both the physical answer and the one that reads like a galaxy.
+
+Earlier the `iris` / `ember` families flipped direction by `scheme.id`, pairing counter-clockwise spin with clockwise arms, and the angular velocity would jump whenever a roam crossed a frame (`mix` past 0.5) or the palette changed. Now `angle` is the single source of angular velocity: it accumulates monotonically, frame after frame, independent of the current palette. The handedness is no longer a `t * 4` scattered through the draw loop either — it lives in one constant, `WIND`, and the physics regression asserts its sign.
 
 Every bright point leaves a short **motion trail** along its orbit (`theta − 0.022`), so the trailing direction is readable without the HUD. Under `prefers-reduced-motion` the trails, parallax, breathing, meteors, beads and ripples are all disabled and the grain is skipped — the disc keeps a very slow drift instead of freezing into a still image.
 

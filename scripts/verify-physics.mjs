@@ -4,7 +4,10 @@
  * checks the invariants the panel is supposed to obey:
  *
  *   1. the whole pattern rotates clockwise on screen (positive theta);
- *   2. the arms wind outward in that same direction, i.e. they trail the spin;
+ *   2. the arms trail that spin: their 4th-harmonic phase must *decrease* with
+ *      radius, because the pattern turns towards +theta. A positive slope would
+ *      mean the outer tip reaches any azimuth before the inner part, i.e. a
+ *      leading arm, which no real disc has;
  *   3. the pointer parallax moves the field and returns to rest.
  *
  * The measurement deliberately samples an annulus in the mid-disc: the outer
@@ -265,7 +268,7 @@ const check = (name, ok, detail) => {
 }
 check('pattern advances clockwise', rotation.advanced > 1.5 && rotation.advanced < 9, `${rotation.advanced.toFixed(1)}°/s`)
 check('arm phase is coherent while it turns', rotation.correlation > 0.9, rotation.correlation.toFixed(3))
-check('arms wind outward with the spin', winding > 120 && winding < 400, `${winding.toFixed(0)}° per disc radius`)
+check('arms trail the spin', winding < -120 && winding > -400, `${winding.toFixed(0)}° per disc radius (negative = trailing)`)
 check('pointer parallax shifts the field', parallax > 2 && parallax < 9, `${parallax} px`)
 check('parallax settles at rest', Math.abs(settled) < 2.5, `${settled} px`)
 check('frame budget holds', fps >= 45, `${fps} fps`)

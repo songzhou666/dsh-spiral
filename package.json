@@ -1,6 +1,6 @@
 {
   "name": "dsh-spiral",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "SemanticNebula (语义星云) — a purely decorative prompt visualizer for the DSH Web GUI: every prompt you submit becomes a slowly turning four-arm spiral galaxy. Local hashing embedding, zero network, zero model files, < 130 KB.",
   "type": "module",
   "author": "songzhou666",

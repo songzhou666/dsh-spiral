@@ -52,13 +52,38 @@ const STAR_TINTS = ['#dfeaff', '#bcd7ff', '#ffe9c9', '#ffffff'] as const
 const PERSPECTIVE = 0.64
 
 /**
+ * Sign of the outward arm winding, in radians per disc radius.
+ *
+ * The pattern turns with +theta, and on a y-down canvas +theta is clockwise.
+ * A trailing arm therefore has to reach *backwards* as it grows: at a larger
+ * radius it sits at a smaller theta than at a smaller one, i.e. behind the
+ * spin, the way a wake sits behind a hull. So the slope is negative — with a
+ * positive slope the outer tip would arrive at any given azimuth before the
+ * inner part and the arms would lead the rotation, which no real disc does
+ * (the classic winding argument: differential rotation shears a radial spoke
+ * into exactly this trailing shape, never the opposite one).
+ */
+const WIND = -4
+
+/**
+ * Pitch wobble driven by the brightness profile, in radians.
+ *
+ * It has to follow the winding sign: the profile value is coherent across the
+ * disc, so a fixed positive offset would fight the (now negative) winding at
+ * some radii and fold the arm back on itself, which showed up as cusps and
+ * near-straight facets along the bright spine. Signed with `WIND`, the wobble
+ * only varies the pitch and the arm stays monotonic.
+ */
+const WIND_WOBBLE = WIND * 0.0875
+
+/**
  * The main radial nebula: profile-driven spiral arms, additive light, HUD rings.
  *
- * Rotation follows the two invariants of a real spiral disc. The arms wind in
- * the same direction the pattern turns, so they always trail the spin; and the
- * material inside the disc shears ahead of the rigid density wave, so the core
- * turns fastest. Every layer adds a positive multiple of `angle`, which is why
- * no part of the nebula can ever read as counter-rotating.
+ * Rotation follows the two invariants of a real spiral disc. The arms reach
+ * backwards against the turn (`WIND` is negative), so they always trail the
+ * spin; and the material inside the disc shears ahead of the rigid density
+ * wave, so the core turns fastest. Every layer adds a positive multiple of
+ * `angle`, which is why no part of the nebula can ever read as counter-rotating.
  */
 export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasProps): React.ReactElement {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -285,9 +310,10 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       }
 
       // One angular velocity only, always positive: the density-wave pattern
-      // turns as a rigid body and `theta` winds outward in the same direction,
-      // so the arms trail the spin (a leading arm is not physical). Reduced
-      // motion keeps a bare whisper of drift instead of freezing the canvas.
+      // turns as a rigid body, while `theta` reaches backwards as it winds out
+      // (`WIND < 0`), so the arms trail the spin — a leading arm is not
+      // physical. Reduced motion keeps a bare whisper of drift instead of
+      // freezing the canvas.
       const speed = reduce ? 0.006 : 0.045 + magnitude * 0.08 + hoverGlow * 0.11
       angle += dt * speed
       const target = state.playing ? 1.16 : state.point === undefined ? 0.66 : 0.8 + magnitude * 0.28
@@ -333,7 +359,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
 
       for (const cloud of clouds) {
         const pv = profile[cloud.band]!
-        const theta = cloud.arm * (TAU / 4) + cloud.t * 4 + pv * 0.35 + angle * 0.8 + Math.sin(cloud.t * 17 + cloud.arm) * 0.035
+        const theta = cloud.arm * (TAU / 4) + cloud.t * WIND + pv * WIND_WOBBLE + angle * 0.8 + Math.sin(cloud.t * 17 + cloud.arm) * 0.035
         const r = radius * (0.06 + cloud.t * 1.02) * (0.92 + pv * 0.16) * (1 + Math.sin(cloud.t * 23 + cloud.arm * 2) * 0.025)
         const x = cx + Math.cos(theta) * r
         const y = cy + Math.sin(theta) * r * PERSPECTIVE
@@ -363,7 +389,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
         for (let step = 0; step <= 44; step++) {
           const t = 0.09 + (step / 44) * 0.91
           const pv = profile[Math.min(255, Math.floor(t * 255))]!
-          const theta = arm * (TAU / 4) + t * 4 + pv * 0.35 + angle * 0.8
+          const theta = arm * (TAU / 4) + t * WIND + pv * WIND_WOBBLE + angle * 0.8
           const r = radius * (0.06 + t * 1.02) * (0.92 + pv * 0.16)
           const x = cx + Math.cos(theta) * r
           const y = cy + Math.sin(theta) * r * PERSPECTIVE
@@ -386,7 +412,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
         for (let step = 0; step <= 36; step++) {
           const t = 0.12 + (step / 36) * 0.88
           const pv = profile[Math.min(255, Math.floor(t * 255))]!
-          const theta = arm * (TAU / 4) + t * 4 + pv * 0.35 + angle * 0.8 + 0.16
+          const theta = arm * (TAU / 4) + t * WIND + pv * WIND_WOBBLE + angle * 0.8 + WIND * 0.04
           const r = radius * (0.06 + t * 1.02) * (0.92 + pv * 0.16) * 0.99
           const x = cx + Math.cos(theta) * r
           const y = cy + Math.sin(theta) * r * PERSPECTIVE
@@ -406,7 +432,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
         for (let step = 0; step <= 80; step++) {
           const t = 0.05 + (step / 80) * 0.95
           const pv = profile[Math.min(255, Math.floor(t * 255))]!
-          const theta = arm * (TAU / 4) + t * 4 + pv * 0.35 + angle * 0.8 + Math.sin(t * 9 + arm) * 0.018
+          const theta = arm * (TAU / 4) + t * WIND + pv * WIND_WOBBLE + angle * 0.8 + Math.sin(t * 9 + arm) * 0.018
           const r = radius * (0.06 + t * 1.02) * (0.92 + pv * 0.16) * (1 + Math.sin(t * 7 + arm) * 0.018)
           const x = cx + Math.cos(theta) * r
           const y = cy + Math.sin(theta) * r * PERSPECTIVE
@@ -426,7 +452,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       for (let index = 0; index < armCount; index++) {
         const particle = arms[index]!
         const pv = profile[particle.band]!
-        const theta = particle.arm * (TAU / 4) + particle.t * 4 + pv * 0.35 + particle.jitter + angle * 0.8
+        const theta = particle.arm * (TAU / 4) + particle.t * WIND + pv * WIND_WOBBLE + particle.jitter + angle * 0.8
         const r = radius * (0.06 + particle.t * 1.02) * (0.92 + pv * 0.16) * (1 + particle.radial)
         const wobble = 1 + Math.sin(now * 0.0008 + particle.wobble) * 0.008
         const x = cx + Math.cos(theta) * r * wobble
@@ -463,7 +489,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
           const k = (now * 0.000075 + bead / 4) % 1
           const t = 0.16 + k * 0.78
           const pv = profile[Math.min(255, Math.floor(t * 255))]!
-          const theta = bead * (TAU / 4) + t * 4 + pv * 0.35 + angle * 0.8
+          const theta = bead * (TAU / 4) + t * WIND + pv * WIND_WOBBLE + angle * 0.8
           const r = radius * (0.06 + t * 1.02) * (0.92 + pv * 0.16)
           const size = radius * (0.075 - k * 0.02)
           ctx.globalAlpha = Math.sin(Math.PI * k) * 0.13 * (0.35 + enter * 0.65)
