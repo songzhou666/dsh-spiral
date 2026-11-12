@@ -597,6 +597,7 @@ body[data-ds-dark-theme] .dnf-root {
   border-radius: 8px;
   background: var(--dnf-chip);
 }
+.dnp-seg[data-cols="3"] { grid-template-columns: repeat(3, 1fr); }
 .dnp-seg button {
   padding: 5px 4px;
   border: 0;

@@ -1,14 +1,15 @@
 /**
  * Motion policy shared by both canvases and the settings sheet.
  *
- * `auto` follows the platform preference. `full` opts out of it, and that case
- * is why this module exists at all: Windows "animation effects: off" (the
- * default on servers, on many VMs and over RDP) flips
- * `prefers-reduced-motion: reduce`, and a decorative galaxy that then creeps at
- * a fraction of a degree per second reads as "the plugin is broken", not as
- * "the system asked for less motion". A user who turned the system setting off
- * for reasons unrelated to this panel can opt back in, and nobody's
- * accessibility preference is ignored by default.
+ * `auto` follows the platform preference; `full` ignores it. The default is
+ * `full`, deliberately: this panel is a decorative galaxy that people install to
+ * look at, and Windows "animation effects: off" (the default on servers, on many
+ * VMs and over RDP) flips `prefers-reduced-motion: reduce` for reasons that have
+ * nothing to do with this widget. Waking up to a disc creeping at a fraction of
+ * a degree per second reads as "the plugin is broken", which is the one thing a
+ * first-run experience must not do. Anyone who actually wants the calmer disc —
+ * including on a machine that asks for less motion — picks 跟随系统, and that
+ * mode still turns (see below) rather than stopping.
  */
 export type MotionMode = 'auto' | 'full'
 
@@ -61,4 +62,21 @@ export function subscribeSystemMotion(listener: () => void): () => void {
   return () => {
     listeners.delete(listener)
   }
+}
+
+/**
+ * Rotation speed tiers. `mid` is the historic speed, so an untouched install and
+ * every number in `verify-physics.mjs` stay comparable across releases.
+ */
+export type SpeedLevel = 'low' | 'mid' | 'high'
+
+/** Multipliers applied to the disc's angular velocity. */
+export const SPEED_SCALE: Record<SpeedLevel, number> = { low: 0.5, mid: 1, high: 1.9 }
+
+/**
+ * Multiplier for the current tier; unknown values fall back to `mid`.
+ * @param level - the user's setting.
+ */
+export function speedScale(level: SpeedLevel | undefined): number {
+  return level === 'low' || level === 'high' ? SPEED_SCALE[level] : SPEED_SCALE.mid
 }

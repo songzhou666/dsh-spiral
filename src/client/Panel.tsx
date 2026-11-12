@@ -301,6 +301,22 @@ export function Panel({ face, onClose, onHeadPointerDown, onHeadPointerMove, onH
             </div>
 
             <div className="dnp-group">
+              <span className="dnp-group-label">转速</span>
+              <div className="dnp-seg" data-cols="3">
+                <button type="button" data-on={settings.speed === 'low'} onClick={() => face.setSpeed('low')}>
+                  低
+                </button>
+                <button type="button" data-on={settings.speed === 'mid'} onClick={() => face.setSpeed('mid')}>
+                  中
+                </button>
+                <button type="button" data-on={settings.speed === 'high'} onClick={() => face.setSpeed('high')}>
+                  高
+                </button>
+              </div>
+              <p className="dnp-note">中速约 70 秒自转一圈，低速为一半，高速近两倍。只改转速，不改星云形状。</p>
+            </div>
+
+            <div className="dnp-group">
               <span className="dnp-group-label">配色</span>
               <div className="dnp-swatches">
                 {PALETTE_NAMES.map((name, index) => (

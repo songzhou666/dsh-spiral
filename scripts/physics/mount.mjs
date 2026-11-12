@@ -41,9 +41,18 @@ function render(node) {
   return element
 }
 
-// motion defaults to auto so a reduced-motion run exercises the real policy;
-// verify-physics.mjs can override it before the bundle mounts.
-const settings = { enabled: true, autoOpen: true, persist: false, dims: 8192, palette: 0, motion: window.__nebulaMotion ?? 'auto' }
+// motion stays 'auto' here on purpose: these probes exercise the *policy*, so a
+// --reduced run must reach the calm path through the media query, not through a
+// hand-set default. speed follows the shipped default.
+const settings = {
+  enabled: true,
+  autoOpen: true,
+  persist: false,
+  dims: 8192,
+  palette: 0,
+  motion: window.__nebulaMotion ?? 'auto',
+  speed: window.__nebulaSpeed ?? 'mid',
+}
 const face = { sequenceAt: () => undefined }
 
 // A frozen profile keeps the arm brightness fixed, so an angular drift of the

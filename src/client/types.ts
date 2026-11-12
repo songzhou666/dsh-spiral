@@ -1,5 +1,5 @@
 import type { EmbeddingDims, SequenceFrame } from './engine'
-import type { MotionMode } from './motion'
+import type { MotionMode, SpeedLevel } from './motion'
 
 /** One committed prompt signal. */
 export interface NebulaPoint {
@@ -27,6 +27,8 @@ export interface NebulaSettings {
   readonly persist: boolean
   /** `auto` follows `prefers-reduced-motion`; `full` always animates. */
   readonly motion: MotionMode
+  /** Rotation speed tier; `mid` is the historic speed. */
+  readonly speed: SpeedLevel
 }
 
 export interface PanelSnapshot {
@@ -61,6 +63,7 @@ export interface NebulaFace {
   setPalette(palette: number): void
   setPersist(value: boolean): void
   setMotion(value: MotionMode): void
+  setSpeed(value: SpeedLevel): void
   play(): void
   stop(): void
   select(id: string): void

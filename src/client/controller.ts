@@ -7,7 +7,7 @@
  */
 import { analyze, hashString } from './engine'
 import type { EmbeddingDims } from './engine'
-import type { MotionMode } from './motion'
+import type { MotionMode, SpeedLevel } from './motion'
 import {
   SessionStore,
   loadSettings,
@@ -117,6 +117,7 @@ export class NebulaController implements StoreHost {
   setPalette = (palette: number): void => this.patchSettings({ palette })
   setPersist = (value: boolean): void => this.patchSettings({ persist: value })
   setMotion = (motion: MotionMode): void => this.patchSettings({ motion })
+  setSpeed = (speed: SpeedLevel): void => this.patchSettings({ speed })
 
   /* ------------------------------------------------------------------ faces */
 
@@ -144,7 +145,8 @@ export class NebulaController implements StoreHost {
       next.dims === previous.dims &&
       next.palette === previous.palette &&
       next.persist === previous.persist &&
-      next.motion === previous.motion
+      next.motion === previous.motion &&
+      next.speed === previous.speed
     ) {
       return
     }

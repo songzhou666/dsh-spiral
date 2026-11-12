@@ -26,8 +26,22 @@ import { launchChromium } from './lib/browser.mjs'
 const argv = process.argv.slice(2)
 const reduced = argv.includes('--reduced')
 const motion = argv.find((arg) => arg.startsWith('--motion='))?.slice('--motion='.length) ?? 'auto'
+const speed = argv.find((arg) => arg.startsWith('--speed='))?.slice('--speed='.length) ?? 'mid'
 /** Which invariant set this run asserts; see the check block at the bottom. */
 const mode = reduced && motion !== 'full' ? 'calm' : 'full'
+/** Expected angular velocity window for this run, in degrees per second. */
+const expected =
+  mode === 'calm'
+    ? speed === 'low'
+      ? [0.45, 1.6]
+      : speed === 'high'
+        ? [1.2, 4.2]
+        : [0.3, 2.6]
+    : speed === 'low'
+      ? [1.4, 3.6]
+      : speed === 'high'
+        ? [7.5, 12.5]
+        : [1.5, 9]
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const harness = join(root, 'scripts', 'physics')
@@ -78,6 +92,7 @@ await page.setContent(`<!doctype html><meta charset="utf-8">
 <div id="frame"><div id="root"></div></div>`)
 if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' })
 if (motion !== 'auto') await page.evaluate((value) => { window.__nebulaMotion = value }, motion)
+if (speed !== 'mid') await page.evaluate((value) => { window.__nebulaSpeed = value }, speed)
 await page.addScriptTag({ content: bundle })
 
 if ((await page.evaluate(() => window.__nebulaMounted === true)) !== true) {
@@ -160,9 +175,9 @@ const angularShift = (a, b) => {
   return { advanced: -best.shift, correlation: best.corr }
 }
 
-// Calm mode turns at about a degree per second, i.e. less than one angular bin
-// over the default one-second window, so the calm run measures a longer span.
-const spanMs = mode === 'calm' ? 6000 : 1000
+// At ~1°/s the pattern moves less than one angular bin over the default
+// one-second window, so every slow run measures six seconds and normalises.
+const spanMs = mode === 'calm' || speed === 'low' ? 6000 : 1000
 await page.waitForTimeout(2200)
 const first = await grab()
 await page.waitForTimeout(spanMs)
@@ -264,6 +279,7 @@ const fps = await page.evaluate(() => new Promise((resolve) => {
 
 const report = {
   canvas: `${canvasSize.width}x${canvasSize.height}`,
+  speed,
   clockwiseDegreesPerSecond: Number(rotation.advanced.toFixed(1)),
   rotationCorrelation: Number(rotation.correlation.toFixed(3)),
   windingDegreesPerDiscRadius: Number(winding.toFixed(0)),
@@ -289,12 +305,12 @@ const check = (name, ok, detail) => {
 //                                must behave exactly like the default run.
 const reducedRun = mode === 'calm'
 if (reducedRun) {
-  check('calm mode still advances clockwise', rotation.advanced > 0.3 && rotation.advanced < 2.6, `${rotation.advanced.toFixed(1)}°/s`)
+  check('calm mode still advances clockwise', rotation.advanced > expected[0] && rotation.advanced < expected[1], `${rotation.advanced.toFixed(1)}°/s`)
   check('calm mode keeps the arm phase coherent', rotation.correlation > 0.9, rotation.correlation.toFixed(3))
   check('calm mode still trails the spin', winding < -120 && winding > -400, `${winding.toFixed(0)}° per disc radius`)
   check('calm mode drops pointer parallax', Math.abs(parallax) < 1, `${parallax} px`)
 } else {
-  check('pattern advances clockwise', rotation.advanced > 1.5 && rotation.advanced < 9, `${rotation.advanced.toFixed(1)}°/s`)
+  check('pattern advances clockwise', rotation.advanced > expected[0] && rotation.advanced < expected[1], `${rotation.advanced.toFixed(1)}°/s`)
   check('arm phase is coherent while it turns', rotation.correlation > 0.9, rotation.correlation.toFixed(3))
   check('arms trail the spin', winding < -120 && winding > -400, `${winding.toFixed(0)}° per disc radius (negative = trailing)`)
   check('pointer parallax shifts the field', parallax > 2 && parallax < 9, `${parallax} px`)

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { motionEnabled } from './motion'
+import { motionEnabled, speedScale } from './motion'
 import { PALETTE_NAMES, schemeOf } from './engine'
 import type { NebulaFace, NebulaPoint, NebulaSettings } from './types'
 import { SpriteCache, TAU, clamp, hexToRgba, makeRng } from './canvas'
@@ -318,9 +318,14 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       // physical. Reduced motion keeps a slow drift instead of freezing the
       // canvas: a still galaxy reads as a broken plugin, and Windows
       // "animation effects: off" is common enough for that to be the first
-      // thing people report. It runs at about a third of the normal speed, so
-      // one turn takes some six minutes instead of two.
-      const speed = calm() ? 0.022 : 0.045 + magnitude * 0.08 + hoverGlow * 0.11
+      // thing people report. It runs at about a fifth of the normal speed, so
+      // one turn takes some six minutes instead of one.
+      // The user's tier multiplies both paths; calm keeps a floor so that
+      // calm + low stays a visible drift instead of returning to the freeze.
+      const tier = speedScale(state.settings.speed)
+      const speed = calm()
+        ? Math.max(0.016, 0.022 * tier)
+        : (0.045 + magnitude * 0.08 + hoverGlow * 0.11) * tier
       angle += dt * speed
       const target = state.playing ? 1.16 : state.point === undefined ? 0.66 : 0.8 + magnitude * 0.28
       energy += (target - energy) * Math.min(1, dt * 3)
