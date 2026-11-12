@@ -15,7 +15,7 @@ English | [中文](README.md)
 - It never intercepts or wraps the DSH composer
 - It never reads or uploads message content
 - No network, no model, no inference calls (the embedding is a local deterministic hash — see *Trade-offs*)
-- Client bundle about 135 KB, no runtime dependencies
+- Client bundle about 139 KB, no runtime dependencies
 
 ## Install
 
@@ -174,7 +174,7 @@ It measures angular velocity with a cyclic cross-correlation of full-turn angula
 
 ## Trade-offs
 
-The original plan — a `bge-small-zh-v1.5-int8.onnx` local embedding plus a precomputed UMAP terrain — was simplified in this delivery to a **deterministic local hash embedding** with **fixed projection geometry**. No model file is loaded, so semantic fidelity is modest, but the cost is zero network, zero model overhead and about 135 KB. If you later want stronger semantic grouping, replace `analyze()` in `engine.ts`; the view layer needs no changes.
+The original plan — a `bge-small-zh-v1.5-int8.onnx` local embedding plus a precomputed UMAP terrain — was simplified in this delivery to a **deterministic local hash embedding** with **fixed projection geometry**. No model file is loaded, so semantic fidelity is modest, but the cost is zero network, zero model overhead and about 139 KB. If you later want stronger semantic grouping, replace `analyze()` in `engine.ts`; the view layer needs no changes.
 
 ## License
 
