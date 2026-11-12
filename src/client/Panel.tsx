@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { PALETTE_NAMES } from './engine'
 import { formatClock } from './store'
+import { motionEnabled, subscribeSystemMotion, systemPrefersReducedMotion } from './motion'
 import type { NebulaFace } from './types'
 import { NebulaCanvas } from './NebulaCanvas'
 import { MapCanvas } from './NebulaMap'
@@ -45,13 +46,24 @@ export function Panel({ face, onClose, onHeadPointerDown, onHeadPointerMove, onH
   const snapshot = useSyncExternalStore(face.subscribe, face.getSnapshot, face.getSnapshot)
   const [sheet, setSheet] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [systemReduced, setSystemReduced] = useState(() => systemPrefersReducedMotion())
   const confirmTimer = useRef<number | undefined>(undefined)
 
+  useEffect(() => subscribeSystemMotion(() => setSystemReduced(systemPrefersReducedMotion())), [])
+
   const settings = snapshot.settings
+
+  // The chassis animations read the same policy as the canvases, so this has to
+  // follow both the setting and the system preference.
+  useEffect(() => {
+    document.documentElement.dataset.dnpMotion = motionEnabled(settings.motion) ? 'full' : 'calm'
+  }, [settings.motion, systemReduced])
+
   const enabled = settings.enabled
   const points = snapshot.points
   const current = points.find((point) => point.id === snapshot.currentId) ?? points.at(-1)
   const playing = snapshot.playing
+
   const playTitle = playing
     ? '停止语义漫游'
     : snapshot.answer !== undefined
@@ -260,6 +272,32 @@ export function Panel({ face, onClose, onHeadPointerDown, onHeadPointerMove, onH
                 </button>
               </div>
               <p className="dnp-note">几何始终按 8192 维计算；维度只改变粒子密度与细节，不改变星云形状。</p>
+            </div>
+
+            <div className="dnp-group">
+              <span className="dnp-group-label">动效</span>
+              <div className="dnp-seg">
+                <button type="button" data-on={settings.motion === 'auto'} onClick={() => face.setMotion('auto')}>
+                  跟随系统
+                </button>
+                <button type="button" data-on={settings.motion === 'full'} onClick={() => face.setMotion('full')}>
+                  完整动效
+                </button>
+              </div>
+              <p className="dnp-note">
+                {settings.motion === 'full' ? (
+                  '始终完整动效：自转、视差、尾迹与流星都会保留。'
+                ) : systemReduced ? (
+                  <>
+                    系统开启了「减少动画」，星云只做极慢漂移。
+                    <button type="button" className="dnp-note-action" onClick={() => face.setMotion('full')}>
+                      改为完整动效
+                    </button>
+                  </>
+                ) : (
+                  '跟随系统的「减少动画」设置。'
+                )}
+              </p>
             </div>
 
             <div className="dnp-group">

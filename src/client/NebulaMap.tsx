@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { motionEnabled } from './motion'
 import { schemeOf } from './engine'
 import type { NebulaFace, NebulaPoint, NebulaSettings } from './types'
 import { SpriteCache, TAU, clamp, hexToRgba } from './canvas'
@@ -47,7 +48,6 @@ export function MapCanvas({ face, points, currentId, settings, playing }: MapCan
     let sweep = 0
     let shock = 1
     let lastCurrent: string | undefined
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     const resize = (): void => {
       const rect = host.getBoundingClientRect()
@@ -74,7 +74,10 @@ export function MapCanvas({ face, points, currentId, settings, playing }: MapCan
       const state = stateRef.current
       const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000))
       last = now
-      sweep += dt * (reduce ? 0 : 0.42)
+      // The minimap follows the same policy as the nebula: no sweep when the
+      // canvas is calm, because a sweeping line is exactly the kind of motion
+      // the preference asks to remove.
+      sweep += dt * (motionEnabled(state.settings.motion) ? 0.42 : 0)
       if (shock > 0) shock = Math.max(0, shock - dt / 1.2)
       if (state.currentId !== lastCurrent) {
         lastCurrent = state.currentId

@@ -1,4 +1,5 @@
 import { analyze, sequenceOf, PROFILE_BANDS, type EmbeddingDims, type SequenceFrame } from './engine'
+import type { MotionMode } from './motion'
 import type {
   NebulaFace,
   NebulaPoint,
@@ -28,6 +29,7 @@ export const DEFAULT_SETTINGS: NebulaSettings = {
   dims: 8192,
   palette: 0,
   persist: true,
+  motion: 'auto',
 }
 
 export interface StoreHost {
@@ -39,6 +41,7 @@ export interface StoreHost {
   setDims(dims: EmbeddingDims): void
   setPalette(palette: number): void
   setPersist(value: boolean): void
+  setMotion(value: MotionMode): void
 }
 
 /* ------------------------------------------------------------- persistence */
@@ -220,6 +223,7 @@ export function loadSettings(): NebulaSettings {
       dims: parsed.dims === 5120 ? 5120 : 8192,
       palette: [0, 1, 2].includes(Number(parsed.palette)) ? Number(parsed.palette) : 0,
       persist: typeof parsed.persist === 'boolean' ? parsed.persist : DEFAULT_SETTINGS.persist,
+      motion: parsed.motion === 'full' ? 'full' : 'auto',
     }
   } catch {
     return DEFAULT_SETTINGS
@@ -301,6 +305,7 @@ export class SessionStore implements NebulaFace {
   setDims = (dims: EmbeddingDims): void => this.host.setDims(dims)
   setPalette = (palette: number): void => this.host.setPalette(palette)
   setPersist = (value: boolean): void => this.host.setPersist(value)
+  setMotion = (value: MotionMode): void => this.host.setMotion(value)
 
   /** Record the latest completed answer; only the optional roam uses it. */
   setAnswer(text: string, time: number): void {

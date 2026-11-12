@@ -1,4 +1,5 @@
 import type { EmbeddingDims, SequenceFrame } from './engine'
+import type { MotionMode } from './motion'
 
 /** One committed prompt signal. */
 export interface NebulaPoint {
@@ -24,6 +25,8 @@ export interface NebulaSettings {
   readonly dims: EmbeddingDims
   readonly palette: number
   readonly persist: boolean
+  /** `auto` follows `prefers-reduced-motion`; `full` always animates. */
+  readonly motion: MotionMode
 }
 
 export interface PanelSnapshot {
@@ -57,6 +60,7 @@ export interface NebulaFace {
   setDims(dims: EmbeddingDims): void
   setPalette(palette: number): void
   setPersist(value: boolean): void
+  setMotion(value: MotionMode): void
   play(): void
   stop(): void
   select(id: string): void

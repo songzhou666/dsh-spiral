@@ -7,6 +7,7 @@
  */
 import { analyze, hashString } from './engine'
 import type { EmbeddingDims } from './engine'
+import type { MotionMode } from './motion'
 import {
   SessionStore,
   loadSettings,
@@ -115,6 +116,7 @@ export class NebulaController implements StoreHost {
   setDims = (dims: EmbeddingDims): void => this.patchSettings({ dims })
   setPalette = (palette: number): void => this.patchSettings({ palette })
   setPersist = (value: boolean): void => this.patchSettings({ persist: value })
+  setMotion = (motion: MotionMode): void => this.patchSettings({ motion })
 
   /* ------------------------------------------------------------------ faces */
 
@@ -141,7 +143,8 @@ export class NebulaController implements StoreHost {
       next.autoOpen === previous.autoOpen &&
       next.dims === previous.dims &&
       next.palette === previous.palette &&
-      next.persist === previous.persist
+      next.persist === previous.persist &&
+      next.motion === previous.motion
     ) {
       return
     }

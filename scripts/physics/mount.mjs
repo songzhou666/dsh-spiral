@@ -41,7 +41,9 @@ function render(node) {
   return element
 }
 
-const settings = { enabled: true, autoOpen: true, persist: false, dims: 8192, palette: 0 }
+// motion defaults to auto so a reduced-motion run exercises the real policy;
+// verify-physics.mjs can override it before the bundle mounts.
+const settings = { enabled: true, autoOpen: true, persist: false, dims: 8192, palette: 0, motion: window.__nebulaMotion ?? 'auto' }
 const face = { sequenceAt: () => undefined }
 
 // A frozen profile keeps the arm brightness fixed, so an angular drift of the

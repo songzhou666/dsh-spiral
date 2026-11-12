@@ -498,9 +498,12 @@ body[data-ds-dark-theme] .dnf-root {
   position: absolute;
   top: 46px;
   right: 7px;
+  bottom: 10px;
   z-index: 9;
   width: min(300px, calc(100% - 14px));
-  max-height: calc(100% - 54px);
+  /* Anchoring top+bottom (rather than max-height) keeps the sheet inside the
+     window whatever its height: the content scrolls instead of spilling past
+     the rounded frame. */
   overflow: auto;
   padding: 11px 12px 12px;
   border-radius: 14px;
@@ -616,6 +619,19 @@ body[data-ds-dark-theme] .dnf-root {
   font-size: 7.7px;
   line-height: 1.55;
 }
+/* Inline escape hatch inside a note: one click turns the motion back on. */
+.dnp-note-action {
+  margin-left: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--dnf-accent, #7b6cc4);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.dnp-note-action:hover { color: var(--dnf-ink-strong); }
 .dnp-note-foot {
   margin-top: 9px;
   padding-top: 8px;
@@ -693,12 +709,14 @@ body[data-ds-dark-theme] .dnf-root {
   .dnp-stage { grid-template-columns: 1.2fr 1fr; gap: 5px; padding: 6px; }
   .dnp-foot { padding-left: 8px; padding-right: 8px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .dnf-window, .dnp-sheet { animation: none; }
-  .dnp-hint-dot { animation: none; }
-  .dnf-launcher { transition: none; }
-  .dnf-launcher::before { animation: none; opacity: 0.26; }
-}
+/* Calm mode is driven by the same policy as the canvases (see motion.ts), not
+   by the media query directly, so the panel's "完整动效" setting also restores
+   the chassis: opting in overrides an OS that asks for less motion. */
+:root[data-dnp-motion='calm'] .dnf-window,
+:root[data-dnp-motion='calm'] .dnp-sheet { animation: none; }
+:root[data-dnp-motion='calm'] .dnp-hint-dot { animation: none; }
+:root[data-dnp-motion='calm'] .dnf-launcher { transition: none; }
+:root[data-dnp-motion='calm'] .dnf-launcher::before { animation: none; opacity: 0.26; }
 
 /* ----------------------------------------------------------- animations */
 @keyframes dnf-window-in {

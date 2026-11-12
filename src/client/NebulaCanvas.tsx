@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { motionEnabled } from './motion'
 import { PALETTE_NAMES, schemeOf } from './engine'
 import type { NebulaFace, NebulaPoint, NebulaSettings } from './types'
 import { SpriteCache, TAU, clamp, hexToRgba, makeRng } from './canvas'
@@ -206,7 +207,9 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
     let meteorVY = 0
     let meteorTail = 90
     const profile = new Float32Array(256)
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    // Read every frame rather than once at mount: the settings sheet can switch
+    // the policy live, and `full` overrides a system that asks for less motion.
+    const calm = (): boolean => !motionEnabled(stateRef.current.settings.motion)
 
     const resize = (): void => {
       const rect = host.getBoundingClientRect()
@@ -276,7 +279,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       if (ripple > 0) ripple = Math.max(0, ripple - dt / 1.05)
       if (meteorLife > 0) {
         meteorLife = Math.max(0, meteorLife - dt / 1.25)
-      } else if (!reduce) {
+      } else if (!calm()) {
         meteorWait -= dt
         if (meteorWait <= 0) {
           meteorWait = 7 + rng() * 9
@@ -312,9 +315,12 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       // One angular velocity only, always positive: the density-wave pattern
       // turns as a rigid body, while `theta` reaches backwards as it winds out
       // (`WIND < 0`), so the arms trail the spin — a leading arm is not
-      // physical. Reduced motion keeps a bare whisper of drift instead of
-      // freezing the canvas.
-      const speed = reduce ? 0.006 : 0.045 + magnitude * 0.08 + hoverGlow * 0.11
+      // physical. Reduced motion keeps a slow drift instead of freezing the
+      // canvas: a still galaxy reads as a broken plugin, and Windows
+      // "animation effects: off" is common enough for that to be the first
+      // thing people report. It runs at about a third of the normal speed, so
+      // one turn takes some six minutes instead of two.
+      const speed = calm() ? 0.022 : 0.045 + magnitude * 0.08 + hoverGlow * 0.11
       angle += dt * speed
       const target = state.playing ? 1.16 : state.point === undefined ? 0.66 : 0.8 + magnitude * 0.28
       energy += (target - energy) * Math.min(1, dt * 3)
@@ -323,8 +329,8 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       const ease = Math.min(1, dt * 3.4)
       parallaxX += (parallaxTargetX - parallaxX) * ease
       parallaxY += (parallaxTargetY - parallaxY) * ease
-      const driftX = reduce ? 0 : parallaxX * 5
-      const driftY = reduce ? 0 : parallaxY * 4
+      const driftX = calm() ? 0 : parallaxX * 5
+      const driftY = calm() ? 0 : parallaxY * 4
 
       const midX = width / 2
       const midY = height * 0.51
@@ -332,7 +338,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       const cy = midY + driftY
       // A very slow breath of the whole disc keeps the still moments alive; a
       // global scale never changes the phase of the arms.
-      const breath = reduce ? 1 : 1 + Math.sin(now * 0.00021) * 0.016
+      const breath = calm() ? 1 : 1 + Math.sin(now * 0.00021) * 0.016
       const radius = Math.max(40, Math.min(width * 0.41, height * 0.44) * energy * breath)
       const paletteName = PALETTE_NAMES[state.settings.palette % PALETTE_NAMES.length] ?? PALETTE_NAMES[0]
 
@@ -463,7 +469,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
         ctx.globalAlpha = (0.024 + pv * 0.09) * fade * (particle.hot ? 1.7 : 1)
         ctx.drawImage(sprites.get(color), x - size / 2, y - size / 2, size, size)
         // A short wake at an earlier phase makes the trailing direction legible.
-        if (!reduce && (particle.hot || index % 5 === 0)) {
+        if (!calm() && (particle.hot || index % 5 === 0)) {
           const wakeTheta = theta - 0.022 - particle.t * 0.022
           const wakeSize = size * 0.78
           ctx.globalAlpha = (0.024 + pv * 0.09) * fade * (particle.hot ? 0.7 : 0.3)
@@ -484,7 +490,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
 
       // Beads of light creep out along each arm: a slow, one-way pulse that
       // reads as star formation propagating down the density wave.
-      if (!reduce) {
+      if (!calm()) {
         for (let bead = 0; bead < 4; bead++) {
           const k = (now * 0.000075 + bead / 4) % 1
           const t = 0.16 + k * 0.78
@@ -525,7 +531,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
         const x = star.x * width + Math.sin(now * 0.00008 + star.phase) * 6 + driftX * 2.6
         const y = star.y * height + Math.cos(now * 0.00006 + star.phase) * 4 + driftY * 2.2
         let glint = 0
-        if (pointerIn && !reduce) {
+        if (pointerIn && !calm()) {
           const gx = x - pointerX
           const gy = y - pointerY
           const d2 = gx * gx + gy * gy
@@ -546,7 +552,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
 
       // A meteor crosses the field every ten-odd seconds: one gradient line
       // and one sprite, so the cost stays flat.
-      if (meteorLife > 0 && !reduce) {
+      if (meteorLife > 0 && !calm()) {
         const env = Math.min(1, (1 - meteorLife) * 6) * Math.min(1, meteorLife * 1.8)
         const travelled = (1 - meteorLife) * 1.25
         const hx = meteorX + meteorVX * travelled
@@ -683,7 +689,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       }
 
       // Click impulse: two rings expanding from the tap, gone in about a second.
-      if (ripple > 0 && !reduce) {
+      if (ripple > 0 && !calm()) {
         const k = 1 - ripple
         const spread = 18 + k * 140
         ctx.globalAlpha = 1
@@ -723,7 +729,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
 
       // Grain last over the vignette: one patterned fill, static in screen
       // space, so it reads as film texture rather than noise crawling around.
-      if (grainCtx !== null && !reduce) {
+      if (grainCtx !== null && !calm()) {
         if (grainPattern === null) grainPattern = ctx.createPattern(grainTile, 'repeat')
         if (grainPattern !== null) {
           ctx.globalCompositeOperation = 'overlay'

@@ -14,12 +14,20 @@
  * HUD ring and the static star field would otherwise swamp the angular signal.
  *
  * Usage: node scripts/verify-physics.mjs
+ *        node scripts/verify-physics.mjs --reduced
+ *        node scripts/verify-physics.mjs --reduced --motion=full
  */
 import { build } from 'esbuild'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { launchChromium } from './lib/browser.mjs'
+
+const argv = process.argv.slice(2)
+const reduced = argv.includes('--reduced')
+const motion = argv.find((arg) => arg.startsWith('--motion='))?.slice('--motion='.length) ?? 'auto'
+/** Which invariant set this run asserts; see the check block at the bottom. */
+const mode = reduced && motion !== 'full' ? 'calm' : 'full'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const harness = join(root, 'scripts', 'physics')
@@ -68,6 +76,8 @@ await page.setContent(`<!doctype html><meta charset="utf-8">
   .dnp-canvas-host, .dnp-canvas { width: 100%; height: 100%; display: block; }
 </style>
 <div id="frame"><div id="root"></div></div>`)
+if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' })
+if (motion !== 'auto') await page.evaluate((value) => { window.__nebulaMotion = value }, motion)
 await page.addScriptTag({ content: bundle })
 
 if ((await page.evaluate(() => window.__nebulaMounted === true)) !== true) {
@@ -150,11 +160,15 @@ const angularShift = (a, b) => {
   return { advanced: -best.shift, correlation: best.corr }
 }
 
+// Calm mode turns at about a degree per second, i.e. less than one angular bin
+// over the default one-second window, so the calm run measures a longer span.
+const spanMs = mode === 'calm' ? 6000 : 1000
 await page.waitForTimeout(2200)
 const first = await grab()
-await page.waitForTimeout(1000)
+await page.waitForTimeout(spanMs)
 const second = await grab()
 const rotation = angularShift(first.means, second.means)
+rotation.advanced = (rotation.advanced / spanMs) * 1000
 
 // Unwrap the 4th-harmonic phase across radius (it repeats every 90°) and fit.
 let unwrapped = 0
@@ -266,11 +280,26 @@ const check = (name, ok, detail) => {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail === undefined ? '' : ` — ${detail}`}`)
   if (!ok) failed = true
 }
-check('pattern advances clockwise', rotation.advanced > 1.5 && rotation.advanced < 9, `${rotation.advanced.toFixed(1)}°/s`)
-check('arm phase is coherent while it turns', rotation.correlation > 0.9, rotation.correlation.toFixed(3))
-check('arms trail the spin', winding < -120 && winding > -400, `${winding.toFixed(0)}° per disc radius (negative = trailing)`)
-check('pointer parallax shifts the field', parallax > 2 && parallax < 9, `${parallax} px`)
-check('parallax settles at rest', Math.abs(settled) < 2.5, `${settled} px`)
+
+// Three runs share this script:
+//   (default)                  → the full-motion invariants;
+//   --reduced                  → the platform asks for less motion, so the panel
+//                                must still turn (slower) and drop parallax;
+//   --reduced --motion=full    → the user overrode the preference, so the panel
+//                                must behave exactly like the default run.
+const reducedRun = mode === 'calm'
+if (reducedRun) {
+  check('calm mode still advances clockwise', rotation.advanced > 0.3 && rotation.advanced < 2.6, `${rotation.advanced.toFixed(1)}°/s`)
+  check('calm mode keeps the arm phase coherent', rotation.correlation > 0.9, rotation.correlation.toFixed(3))
+  check('calm mode still trails the spin', winding < -120 && winding > -400, `${winding.toFixed(0)}° per disc radius`)
+  check('calm mode drops pointer parallax', Math.abs(parallax) < 1, `${parallax} px`)
+} else {
+  check('pattern advances clockwise', rotation.advanced > 1.5 && rotation.advanced < 9, `${rotation.advanced.toFixed(1)}°/s`)
+  check('arm phase is coherent while it turns', rotation.correlation > 0.9, rotation.correlation.toFixed(3))
+  check('arms trail the spin', winding < -120 && winding > -400, `${winding.toFixed(0)}° per disc radius (negative = trailing)`)
+  check('pointer parallax shifts the field', parallax > 2 && parallax < 9, `${parallax} px`)
+  check('parallax settles at rest', Math.abs(settled) < 2.5, `${settled} px`)
+}
 check('frame budget holds', fps >= 45, `${fps} fps`)
 check('no runtime errors', errors.length === 0, errors.slice(0, 2).join(' | '))
 
