@@ -342,10 +342,24 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
         ctx.drawImage(sprites.get(scheme.arms[cloud.tint % 4]!), x - size / 2, y - size / 2, size, size)
       }
 
-      // Continuous spiral spines give the arms a readable shape.
-      ctx.globalAlpha = 1
+      // Continuous spiral spines give the arms a readable shape. Each layer is
+      // stroked while the colour itself carries a radial alpha ramp: the band
+      // fades out where the arm leaves the disc, so a wide stroke never ends in
+      // a flat cut (at 30 px wide that read as a ribbon sheared off with
+      // scissors). Several widths with rising alpha replace one flat ribbon,
+      // which gives the cross section a gradient instead of two hard edges.
+      const radialFade = (color: string): CanvasGradient => {
+        const gradient = ctx.createRadialGradient(cx, cy, radius * 0.02, cx, cy, radius * 1.04)
+        gradient.addColorStop(0, hexToRgba(color, 0))
+        gradient.addColorStop(0.16, hexToRgba(color, 1))
+        gradient.addColorStop(0.8, hexToRgba(color, 0.88))
+        gradient.addColorStop(1, hexToRgba(color, 0))
+        return gradient
+      }
+      const spineFade = [radialFade(scheme.arms[1]!), radialFade(scheme.accent), radialFade(scheme.core)]
+      ctx.lineJoin = 'round'
       for (let arm = 0; arm < 4; arm++) {
-        ctx.beginPath()
+        const spine = new Path2D()
         for (let step = 0; step <= 44; step++) {
           const t = 0.09 + (step / 44) * 0.91
           const pv = profile[Math.min(255, Math.floor(t * 255))]!
@@ -353,21 +367,22 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
           const r = radius * (0.06 + t * 1.02) * (0.92 + pv * 0.16)
           const x = cx + Math.cos(theta) * r
           const y = cy + Math.sin(theta) * r * PERSPECTIVE
-          if (step === 0) ctx.moveTo(x, y)
-          else ctx.lineTo(x, y)
+          if (step === 0) spine.moveTo(x, y)
+          else spine.lineTo(x, y)
         }
-        ctx.strokeStyle = hexToRgba(scheme.arms[1]!, 0.045)
-        ctx.lineWidth = 30
-        ctx.stroke()
-        ctx.strokeStyle = hexToRgba(scheme.accent, 0.075)
-        ctx.lineWidth = 10
-        ctx.stroke()
-        ctx.strokeStyle = hexToRgba(scheme.core, 0.14)
-        ctx.lineWidth = 1.4
-        ctx.stroke()
+        for (const [width, alpha, tone] of [[52, 0.007, 0], [34, 0.012, 0], [23, 0.017, 0], [13, 0.024, 0], [7, 0.032, 1]] as const) {
+          ctx.globalAlpha = alpha
+          ctx.lineWidth = width
+          ctx.strokeStyle = spineFade[tone]!
+          ctx.stroke(spine)
+        }
+        ctx.globalAlpha = 0.16
+        ctx.lineWidth = 1.25
+        ctx.strokeStyle = spineFade[2]!
+        ctx.stroke(spine)
 
-        // A parallel, softer lane widens the arm.
-        ctx.beginPath()
+        // A parallel, softer lane widens the arm on one side.
+        const lane = new Path2D()
         for (let step = 0; step <= 36; step++) {
           const t = 0.12 + (step / 36) * 0.88
           const pv = profile[Math.min(255, Math.floor(t * 255))]!
@@ -375,12 +390,15 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
           const r = radius * (0.06 + t * 1.02) * (0.92 + pv * 0.16) * 0.99
           const x = cx + Math.cos(theta) * r
           const y = cy + Math.sin(theta) * r * PERSPECTIVE
-          if (step === 0) ctx.moveTo(x, y)
-          else ctx.lineTo(x, y)
+          if (step === 0) lane.moveTo(x, y)
+          else lane.lineTo(x, y)
         }
-        ctx.strokeStyle = hexToRgba(scheme.arms[2]!, 0.032)
-        ctx.lineWidth = 18
-        ctx.stroke()
+        for (const [width, alpha] of [[20, 0.012], [11, 0.018]] as const) {
+          ctx.globalAlpha = alpha
+          ctx.lineWidth = width
+          ctx.strokeStyle = spineFade[0]!
+          ctx.stroke(lane)
+        }
       }
 
       // Soft band stamps: a continuous nebular body under the sparkle.
@@ -526,50 +544,74 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
         ctx.drawImage(sprites.get(scheme.core), hx - head / 2, hy - head / 2, head, head)
       }
 
-      // Profile rays, kept faint so the core stays clean. The core shears ahead
-      // of the pattern (same sign, higher rate): inner material turns fastest.
-      const rayCount = Math.floor(64 * density)
-      for (let i = 0; i < rayCount; i++) {
+      // The old pass here drew 64 straight radial rays. They read as hard beams
+      // fanning out of the star, which fought the soft light, so the disc now
+      // gets its texture from the sheared wisps below: short arcs that follow
+      // the flow at a constant radius, never a straight line pointing at the core.
+      ctx.globalAlpha = 1
+      const wispCount = Math.floor(52 * density)
+      for (let i = 0; i < wispCount; i++) {
         const pv = profile[(i * 11) % 256]!
-        if (pv < 0.18) continue
-        const theta = angle * 1.12 + (i / 64) * TAU
-        const inner = radius * 0.12
-        const outer = inner + radius * (0.1 + pv * 0.5)
+        if (pv < 0.24) continue
+        const theta0 = angle * 1.12 + (i / wispCount) * TAU
+        const r = radius * (0.18 + ((i * 29) % 97) / 97 * 0.8) * (0.94 + pv * 0.1)
+        const span = 0.03 + pv * 0.05
         ctx.beginPath()
-        ctx.moveTo(cx + Math.cos(theta) * inner, cy + Math.sin(theta) * inner * PERSPECTIVE)
-        ctx.lineTo(cx + Math.cos(theta) * outer, cy + Math.sin(theta) * outer * PERSPECTIVE)
-        ctx.strokeStyle = hexToRgba(scheme.arms[(i + 1) % 4]!, 0.02 + pv * 0.055)
-        ctx.lineWidth = 0.5 + pv * 0.6
+        for (let step = 0; step <= 3; step++) {
+          const theta = theta0 + (step / 3) * span
+          const x = cx + Math.cos(theta) * r
+          const y = cy + Math.sin(theta) * r * PERSPECTIVE
+          if (step === 0) ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
+        }
+        ctx.strokeStyle = hexToRgba(scheme.arms[(i + 1) % 4]!, 0.03 + pv * 0.05)
+        ctx.lineWidth = 0.5 + pv * 0.7
         ctx.stroke()
       }
 
-      // Chromatic core, short diffraction spikes, and a soft lens halo.
+      // Chromatic core: a wide dim halo, a small bright nucleus, and a four point
+      // flare whose gradient starts at zero. Every layer stays under the additive
+      // clipping threshold, so the centre reads as light with no visible rim —
+      // the white disc that used to sit there was the clipping contour itself.
       const coreSize = (10 + magnitude * 8) * (1 + Math.sin(now * 0.002) * 0.04) * (0.9 + enter * 0.1)
-      ctx.globalAlpha = 0.5
-      ctx.drawImage(sprites.get(scheme.accent), cx - coreSize * 3.4, cy - coreSize * 3.4, coreSize * 6.8, coreSize * 6.8)
-      ctx.globalAlpha = 0.95
-      ctx.drawImage(sprites.get(scheme.core), cx - coreSize * 1.6, cy - coreSize * 1.6, coreSize * 3.2, coreSize * 3.2)
+      ctx.globalAlpha = 0.3
+      ctx.drawImage(sprites.get(scheme.accent), cx - coreSize * 4.8, cy - coreSize * 4.8, coreSize * 9.6, coreSize * 9.6)
+      ctx.globalAlpha = 0.2
+      ctx.drawImage(sprites.get(scheme.core), cx - coreSize * 2.7, cy - coreSize * 2.7, coreSize * 5.4, coreSize * 5.4)
+      ctx.globalAlpha = 0.58
+      ctx.drawImage(sprites.get(scheme.core), cx - coreSize * 1.05, cy - coreSize * 1.05, coreSize * 2.1, coreSize * 2.1)
 
+      // Flares are tapered diamonds, not rectangles: the silhouette itself thins
+      // toward the tip, so nothing reads as a straight beam.
       ctx.save()
       ctx.translate(cx, cy)
       for (let spike = 0; spike < 4; spike++) {
-        const reach = coreSize * (spike < 2 ? 5.2 : 3.6)
+        const reach = coreSize * (spike < 2 ? 2.5 : 1.8)
+        const waist = coreSize * 0.1
         ctx.save()
         ctx.rotate((spike * Math.PI) / 2)
-        const glow = ctx.createLinearGradient(0, 0, reach, 0)
-        glow.addColorStop(0, hexToRgba(scheme.core, 0.5))
-        glow.addColorStop(0.35, hexToRgba(scheme.accent, 0.18))
-        glow.addColorStop(1, hexToRgba(scheme.accent, 0))
-        ctx.fillStyle = glow
-        ctx.fillRect(0, -0.5, reach, 1)
+        const flare = ctx.createLinearGradient(0, 0, reach, 0)
+        flare.addColorStop(0, hexToRgba(scheme.core, 0.3))
+        flare.addColorStop(0.3, hexToRgba(scheme.core, 0.14))
+        flare.addColorStop(0.7, hexToRgba(scheme.accent, 0.04))
+        flare.addColorStop(1, hexToRgba(scheme.accent, 0))
+        ctx.fillStyle = flare
+        ctx.beginPath()
+        ctx.moveTo(0, 0)
+        ctx.lineTo(reach * 0.34, -waist)
+        ctx.lineTo(reach, 0)
+        ctx.lineTo(reach * 0.34, waist)
+        ctx.closePath()
+        ctx.fill()
         ctx.restore()
       }
       ctx.restore()
 
+      // One white pinprick keeps the star sharp after the halo is softened.
       ctx.globalAlpha = 1
       ctx.fillStyle = '#ffffff'
       ctx.beginPath()
-      ctx.arc(cx, cy, Math.max(1.2, coreSize * 0.13), 0, TAU)
+      ctx.arc(cx, cy, Math.max(1, coreSize * 0.075), 0, TAU)
       ctx.fill()
 
       // HUD orbit: no solid circle, just ticks and two dashed rings.

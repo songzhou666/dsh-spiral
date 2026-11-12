@@ -55,6 +55,7 @@ Atmosphere details (all part of the optional "feel" layer; none of them feed any
 - **Breathing** — the whole disc scales ±1.6% on a ~30 s cycle, so a still frame never reads as a wallpaper.
 - **Outward beads** — one faint bead per arm drifts outward while riding the pattern, reading as star formation in a density wave; its direction always matches the spin.
 - **Meteors** — roughly every 10 s a meteor crosses a corner of the frame: one gradient line plus one sprite.
+- **Soft core** — a wide dim halo plus a small nucleus, with the four flares shaped as diamonds that taper to a point; every layer stays under the additive clipping threshold, so the centre reads as one star instead of a hard white disc with a cross. The arms work the same way: several strokes from wide to narrow, each with a radial fade, so no ribbon is ever sheared off flat.
 - **Film grain** — a 128² noise tile composited with `overlay`; it adds texture to the dark areas and doubles as dithering against 8-bit banding.
 
 ## Appearance
@@ -68,7 +69,7 @@ Both canvases stay dark in either appearance: space is always dark outside the p
 The picture obeys the two basic constraints of a spiral galaxy, and no layer ever counter-rotates:
 
 - **Trailing arms** — the arms wind in the same direction the pattern spins (θ grows outward while `angle` increases monotonically), so the arms always trail the spin instead of reading as "spinning apart".
-- **Rigid pattern, differential material** — the density wave itself rotates rigidly at one angular velocity, while the inner rays run a little faster (`angle * 1.12`) and the outer motes a little slower (`angle * 0.25`): differential rotation, without winding the arms ever tighter.
+- **Rigid pattern, differential material** — the density wave itself rotates rigidly at one angular velocity, while the inner filaments run a little faster (`angle * 1.12`) and the outer motes a little slower (`angle * 0.25`): differential rotation, without winding the arms ever tighter.
 
 Earlier the `iris` / `ember` families flipped direction by `scheme.id`, pairing counter-clockwise spin with clockwise arms, and the angular velocity would jump whenever a roam crossed a frame (`mix` past 0.5) or the palette changed. Now `angle` is the single source of angular velocity: it accumulates monotonically, frame after frame, independent of the current palette.
 
