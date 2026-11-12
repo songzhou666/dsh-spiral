@@ -11,9 +11,10 @@ const bundle = new URL('../lib/client.js', import.meta.url)
 const controller = new AbortController()
 const timeout = setTimeout(() => controller.abort(), 6000)
 let graph
+let reader
 try {
   const response = await fetch(`${origin}/plugins/events`, { signal: controller.signal })
-  const reader = response.body.getReader()
+  reader = response.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
   for (;;) {
@@ -33,6 +34,9 @@ try {
   console.log('stream error:', error.name, error.message)
 } finally {
   clearTimeout(timeout)
+  // The SSE stream never ends on its own: close it, or the process hangs.
+  if (reader !== undefined) await reader.cancel().catch(() => {})
+  controller.abort()
 }
 
 if (graph === undefined) {
@@ -52,7 +56,10 @@ console.log('entry', entry.id, 'rev', entry.rev, 'url', entry.url)
 const served = Buffer.from(await (await fetch(`${origin}/${entry.url}`)).arrayBuffer())
 const onDisk = readFileSync(bundle)
 console.log('served bytes', served.length, 'on-disk bytes', onDisk.length)
-const same = served.equals(onDisk)
+// The host appends a rev-stamped `//# sourceMappingURL=` comment to what it
+// serves, so compare the payload and not the trailer.
+const strip = (text) => text.replace(/\s*;?\s*\/\/# sourceMappingURL=.*\s*$/, '').trimEnd()
+const same = strip(served.toString('utf8')) === strip(onDisk.toString('utf8'))
 console.log(same ? 'PASS live GUI serves the current bundle' : 'NOTE served bundle differs from disk')
 if (!same) {
   const { writeFileSync } = await import('node:fs')
