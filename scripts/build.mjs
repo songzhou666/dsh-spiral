@@ -1,10 +1,12 @@
 import { build } from 'esbuild'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const watch = process.argv.includes('--watch')
+/** The ModuleLoader id must equal the package name: the host resolves client halves by package. */
+const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
 
 mkdirSync(resolve(root, 'lib'), { recursive: true })
 
@@ -33,7 +35,7 @@ const clientOptions = {
   jsx: 'automatic',
   external,
   banner: {
-    js: 'window.__ModuleLoader__.load({ id: "dsh-nebula", factory: (require) => { var module = { exports: {} }; var exports = module.exports;',
+    js: `window.__ModuleLoader__.load({ id: ${JSON.stringify(pkg.name)}, factory: (require) => { var module = { exports: {} }; var exports = module.exports;`,
   },
   footer: {
     js: 'return module.exports; } });',
@@ -62,8 +64,8 @@ if (watch) {
   const { context } = await import('esbuild')
   const [clientContext, hostContext] = await Promise.all([context(clientOptions), context(hostOptions)])
   await Promise.all([clientContext.watch(), hostContext.watch()])
-  console.log('[dsh-nebula] watching…')
+  console.log(`[${pkg.name}] watching…`)
 } else {
   await Promise.all([build(clientOptions), build(hostOptions)])
-  console.log('[dsh-nebula] built lib/index.js + lib/client.js')
+  console.log(`[${pkg.name}] built lib/index.js + lib/client.js`)
 }

@@ -1,6 +1,6 @@
 {
-  "name": "dsh-nebula",
-  "version": "0.1.2",
+  "name": "dsh-spiral",
+  "version": "0.2.0",
   "description": "SemanticNebula (语义星云) — a purely decorative prompt visualizer for the DSH Web GUI: every prompt you submit becomes a slowly turning four-arm spiral galaxy. Local hashing embedding, zero network, zero model files, < 130 KB.",
   "type": "module",
   "author": "songzhou666",
@@ -8,11 +8,11 @@
   "icon": "./icon.svg",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/songzhou666/dsh-nebula.git"
+    "url": "git+https://github.com/songzhou666/dsh-spiral.git"
   },
-  "homepage": "https://github.com/songzhou666/dsh-nebula#readme",
+  "homepage": "https://github.com/songzhou666/dsh-spiral#readme",
   "bugs": {
-    "url": "https://github.com/songzhou666/dsh-nebula/issues"
+    "url": "https://github.com/songzhou666/dsh-spiral/issues"
   },
   "publishConfig": {
     "access": "public"

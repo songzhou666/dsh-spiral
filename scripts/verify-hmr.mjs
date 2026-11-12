@@ -14,6 +14,7 @@ if (url === undefined) {
   console.error('usage: node scripts/verify-hmr.mjs <url-with-token>  (or set DSH_URL)')
   process.exit(1)
 }
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
 const bundle = new URL('../lib/client.js', import.meta.url)
 
 const getRev = async () => {
@@ -22,7 +23,7 @@ const getRev = async () => {
   const auth = await fetch(url, { redirect: 'manual' })
   const cookie = auth.headers.get('set-cookie')?.split(';', 1)[0]
   const html = await (await fetch(new URL('/', url), { headers: cookie === undefined ? {} : { cookie } })).text()
-  const match = html.match(/dsh-nebula[\s\S]{0,600}?["']rev["']\s*:\s*["']([0-9a-f]+)["']/)
+  const match = html.match(new RegExp(`${pkg.name}[\\s\\S]{0,600}?["']rev["']\\s*:\\s*["']([0-9a-f]+)["']`))
   return match?.[1] ?? 'NOT FOUND'
 }
 

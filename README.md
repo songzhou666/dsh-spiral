@@ -19,18 +19,20 @@
 
 DSH 通过 **profile 的 pnpm 依赖** 发现插件，所以插件包必须先成为 `~/.dsh/profiles/web` 的本地依赖，再在 `cordis.patch.yml` 中声明。
 
+> 包名是 `dsh-spiral`（npm 上的 `dsh-nebula` 已被另一个同名极光插件占用），项目/产品名仍然叫 **SemanticNebula · 语义星云**。
+
 ```bash
 # 1) 取回源码
-git clone https://github.com/songzhou666/dsh-nebula.git
+git clone https://github.com/songzhou666/dsh-spiral.git
 
 # 2) 让 profile 认识这个包（本地目录，不发布到 npm）
 cd ~/.dsh/profiles/web
-pnpm add /path/to/dsh-nebula
+pnpm add /path/to/dsh-spiral
 
 # 3) 在 ~/.dsh/profiles/web/cordis.patch.yml 末尾追加仓库自带的片段
 - insert:
-    - id: dsh-nebula-bundle
-      name: dsh-nebula
+    - id: dsh-spiral-bundle
+      name: dsh-spiral
 ```
 
 重启 DSH Web 服务后，右下角会出现一枚乳白色悬浮球。
@@ -122,7 +124,7 @@ pnpm test           # 嵌入不变量 + 控制器状态机
 本地调试可以用 `dev.patch.yml` 直接指向构建产物，不需要安装（先把里面的 `name` 改成你本机 `lib/index.js` 的绝对路径）：
 
 ```bash
-dsh web --patch /path/to/dsh-nebula/dev.patch.yml --port 3081 --host 127.0.0.1 --no-open
+dsh web --patch /path/to/dsh-spiral/dev.patch.yml --port 3081 --host 127.0.0.1 --no-open
 ```
 
 需要本机 Playwright Chromium 才能跑视觉回归脚本（`pnpm add -D playwright && npx playwright install chromium`；若 Playwright 装在别处，用 `PLAYWRIGHT_MODULE` / `CHROMIUM_PATH` 指过去）：

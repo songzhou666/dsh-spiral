@@ -1,6 +1,6 @@
 # Dev-only loader row: points straight at the host half, so no npm install is needed.
 # Set `name` to the absolute path of this checkout, then:
-#   dsh web --patch /path/to/dsh-nebula/dev.patch.yml --port 3081 --host 127.0.0.1 --no-open
+#   dsh web --patch /path/to/dsh-spiral/dev.patch.yml --port 3081 --host 127.0.0.1 --no-open
 - insert:
-    - id: dsh-nebula-dev
-      name: /absolute/path/to/dsh-nebula/lib/index.js
+    - id: dsh-spiral-dev
+      name: /absolute/path/to/dsh-spiral/lib/index.js

@@ -8,12 +8,17 @@ import type {
 } from './types'
 
 export const NEBULA_KIND = 'nebula'
-export const NEBULA_ID = 'dsh-nebula'
+export const NEBULA_ID = 'dsh-spiral'
 export const NEBULA_ADDRESS = 'dsh-resource://nebula/panel'
 
 const MAX_POINTS = 72
 const FRAME_MS = 220
 const DEDUPE_WINDOW_MS = 15_000
+/**
+ * Storage keys deliberately keep the historical `dsh-nebula` prefix: the package
+ * was renamed to dsh-spiral, and changing the keys would silently orphan every
+ * star and every setting already saved in a user's browser.
+ */
 const SETTINGS_KEY = 'dsh-nebula:settings:v1'
 const HISTORY_PREFIX = 'dsh-nebula:history:v1:'
 

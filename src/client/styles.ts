@@ -1,6 +1,6 @@
 /** The floating card's whole visual language: warm ivory glass framing two deep-space canvases. */
 
-const STYLE_ID = 'dsh-nebula-styles'
+const STYLE_ID = 'dsh-spiral-styles'
 
 const CSS = `
 .dnf-root {

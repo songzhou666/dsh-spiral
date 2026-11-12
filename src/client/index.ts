@@ -21,8 +21,8 @@ export const inject = ['sidebarRight', 'sessions']
 export function apply(ctx: ClientContext): void {
   const controller = new NebulaController(ctx as never)
 
-  ctx.effect(() => () => controller.dispose(), 'dsh-nebula: controller')
-  ctx.effect(() => installStyles(), 'dsh-nebula: styles')
+  ctx.effect(() => () => controller.dispose(), 'dsh-spiral: controller')
+  ctx.effect(() => installStyles(), 'dsh-spiral: styles')
   ctx.effect(() => {
     if (typeof document === 'undefined' || document.body === null) return () => {}
     const host = document.createElement('div')
@@ -35,5 +35,5 @@ export function apply(ctx: ClientContext): void {
       root.unmount()
       host.remove()
     }
-  }, 'dsh-nebula: floating overlay')
+  }, 'dsh-spiral: floating overlay')
 }

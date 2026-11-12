@@ -1,12 +1,13 @@
 /**
  * Confirms which build the running GUI actually serves: reads the plugin graph
- * over the unauthenticated SSE stream, fetches the advertised `dsh-nebula`
- * client bundle, and compares it byte-for-byte with `lib/client.js` on disk.
+ * over the unauthenticated SSE stream, fetches the advertised client bundle for
+ * this package, and compares it byte-for-byte with `lib/client.js` on disk.
  */
 import { readFileSync } from 'node:fs'
 
 const origin = (process.argv[2] ?? 'http://127.0.0.1:3080').replace(/\/$/, '')
 const bundle = new URL('../lib/client.js', import.meta.url)
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
 
 const controller = new AbortController()
 const timeout = setTimeout(() => controller.abort(), 6000)
@@ -45,9 +46,9 @@ if (graph === undefined) {
 }
 
 console.log('graph rev', graph.rev)
-const entry = graph.entries.find((item) => item.id === 'dsh-nebula')
+const entry = graph.entries.find((item) => item.id === pkg.name)
 if (entry === undefined) {
-  console.log('FAIL dsh-nebula not in graph')
+  console.log(`FAIL ${pkg.name} not in graph`)
   console.log(graph.entries.map((item) => item.id).join('\n'))
   process.exit(1)
 }

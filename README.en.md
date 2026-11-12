@@ -19,18 +19,20 @@ A **purely decorative** plugin for the DSH Web GUI: each prompt you submit is pr
 
 DSH discovers plugins through the **profile's pnpm dependencies**, so the package has to become a local dependency of `~/.dsh/profiles/web` first, and then be declared in `cordis.patch.yml`.
 
+> The package is called `dsh-spiral` (the name `dsh-nebula` on npm is taken by an unrelated aurora plugin); the project and product name is still **SemanticNebula**.
+
 ```bash
 # 1) Grab the source
-git clone https://github.com/songzhou666/dsh-nebula.git
+git clone https://github.com/songzhou666/dsh-spiral.git
 
 # 2) Make the profile aware of the package (local directory, not published to npm)
 cd ~/.dsh/profiles/web
-pnpm add /path/to/dsh-nebula
+pnpm add /path/to/dsh-spiral
 
 # 3) Append the snippet shipped in this repo to ~/.dsh/profiles/web/cordis.patch.yml
 - insert:
-    - id: dsh-nebula-bundle
-      name: dsh-nebula
+    - id: dsh-spiral-bundle
+      name: dsh-spiral
 ```
 
 Restart the DSH Web server and a milky-white floating orb appears in the bottom-right corner.
@@ -122,7 +124,7 @@ pnpm test           # embedding invariants + controller state machine
 For local debugging, `dev.patch.yml` points the host straight at the build output — no install needed (set its `name` to the absolute path of `lib/index.js` on your machine first):
 
 ```bash
-dsh web --patch /path/to/dsh-nebula/dev.patch.yml --port 3081 --host 127.0.0.1 --no-open
+dsh web --patch /path/to/dsh-spiral/dev.patch.yml --port 3081 --host 127.0.0.1 --no-open
 ```
 
 The visual regression scripts need a local Playwright Chromium (`pnpm add -D playwright && npx playwright install chromium`; if Playwright lives elsewhere, point `PLAYWRIGHT_MODULE` / `CHROMIUM_PATH` at it):

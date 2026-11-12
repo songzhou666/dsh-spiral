@@ -5,6 +5,7 @@ import { schemeOf } from './engine'
 import { Panel } from './Panel'
 import { NebulaGlyph } from './icons'
 
+/** Key kept from the dsh-nebula era: renaming it would forget the panel position. */
 const RECT_KEY = 'dsh-nebula:float:v1'
 const MIN_W = 420
 const MIN_H = 300
