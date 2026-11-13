@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { PALETTE_NAMES } from './engine'
+import { PALETTE_NAMES, constellationId } from './engine'
 import { formatClock } from './store'
 import { motionEnabled, subscribeSystemMotion, systemPrefersReducedMotion } from './motion'
 import type { NebulaFace } from './types'
@@ -161,7 +161,7 @@ export function Panel({ face, onClose, onHeadPointerDown, onHeadPointerMove, onH
 
       <div className="dnp-stage">
         <section className="dnp-view dnp-nebula">
-          <NebulaCanvas face={face} point={current} settings={settings} playing={playing} />
+          <NebulaCanvas face={face} point={current} settings={settings} playing={playing} answerTime={snapshot.answer?.time} />
           {!enabled && (
             <div className="dnp-overlay">
               <span className="dnp-overlay-icon">
@@ -212,6 +212,7 @@ export function Panel({ face, onClose, onHeadPointerDown, onHeadPointerMove, onH
                 <span>·</span>
                 {current.tokens} TOK
                 <span>·</span>Σ {current.magnitude.toFixed(2)}
+                <span>·</span>{constellationId(current.text)}
               </div>
             </>
           ) : (

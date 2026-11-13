@@ -674,6 +674,8 @@ body[data-ds-dark-theme] .dnf-root {
 .dnp-swatches i[data-palette="0"] { background: conic-gradient(from 210deg, #63f3ff, #7a6bff, #ff6ad5, #63f3ff); }
 .dnp-swatches i[data-palette="1"] { background: conic-gradient(from 210deg, #83ffc8, #5ef2ff, #8a5cff, #83ffc8); }
 .dnp-swatches i[data-palette="2"] { background: conic-gradient(from 210deg, #ffc06b, #ff7a63, #ff6ad5, #ffc06b); }
+.dnp-swatches i[data-palette="3"] { background: conic-gradient(from 210deg, #f4f7fb, #c8d3e2, #8e9bad, #f4f7fb); }
+.dnp-swatches i[data-palette="4"] { background: conic-gradient(from 210deg, #ffd07a, #ff7a4c, #ff3d6e, #ffd07a); }
 .dnp-danger {
   width: 100%;
   margin-top: 10px;

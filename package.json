@@ -1,7 +1,7 @@
 {
   "name": "dsh-spiral",
   "version": "0.6.0",
-  "description": "SemanticNebula (语义星云) — decorative DSH / DeepSeek Harness plugin: every prompt becomes a rotating four-arm spiral nebula with a local semantic footprint map. No model, no network, under 130 KB.",
+  "description": "SemanticNebula (语义星云) — decorative DSH / DeepSeek Harness plugin: every prompt becomes a rotating four-arm spiral nebula with a local semantic footprint map. No model, no network, about 142 KB (32 KB gzipped).",
   "type": "module",
   "author": "songzhou666",
   "license": "MIT",
@@ -78,16 +78,16 @@
     "catalog": {
       "category": "ui",
       "summary": {
-        "en": "A decorative DSH Web GUI plugin that turns every submitted prompt into a slowly rotating four-arm spiral nebula, with a local semantic footprint map beside it. No network, no model, no message access; client bundle under 130 KB.",
-        "zh": "纯装饰性 DSH Web GUI 插件：把每条提示词实时投影成一片会自转的四臂旋涡星云，并在旁边绘制本地语义足迹图。不联网、不调模型、不读取消息内容，客户端产物小于 130 KB。"
+          "en": "A decorative DSH Web GUI plugin that turns every submitted prompt into a slowly rotating four-arm spiral nebula, with a local semantic footprint map beside it. No network, no model, no message access; client bundle about 142 KB (32 KB gzipped).",
+          "zh": "纯装饰性 DSH Web GUI 插件：把每条提示词实时投影成一片会自转的四臂旋涡星云，并在旁边绘制本地语义足迹图。不联网、不调模型、不读取消息内容，客户端产物约 142 KB（gzip 约 32 KB）。"
       },
       "capabilities": [
         "Live prompt-to-nebula projection using deterministic local hashing",
         "Semantic footprint map with history trail and coordinate grid",
         "Draggable, resizable 520 x 352 panel following host light and dark themes",
         "Semantic roaming playback for prompts and model answers",
-        "Three colour schemes with parallax, ripples and reduced-motion support",
-        "Zero runtime dependencies, zero network calls, client bundle under 130 KB"
+    "Five colour schemes with layered star parallax, answer echo and reduced-motion support",
+    "Zero runtime dependencies, zero network calls, client bundle about 142 KB (32 KB gzipped)"
       ]
     }
   },

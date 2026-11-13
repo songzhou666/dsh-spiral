@@ -15,7 +15,7 @@ English | [中文](README.md)
 - It never intercepts or wraps the DSH composer
 - It never reads or uploads message content
 - No network, no model, no inference calls (the embedding is a local deterministic hash — see *Trade-offs*)
-- Client bundle about 143 KB, no runtime dependencies
+- Client bundle about 142 KB (about 32 KB gzipped), no runtime dependencies
 
 ## Install
 
@@ -50,15 +50,18 @@ Restart the DSH Web server and a milky-white floating orb appears in the bottom-
 3. Left side is the **nebula view** (four arms + particles + glow), right side is the **semantic footprint map** (history trail + coordinate grid).
 4. Drag the title bar to move the window, drag the bottom-right corner to resize, click "collapse to orb" to minimise.
 5. Press play to run a **semantic roam** in submission order; once the model answers, it becomes "roam the answer's semantics".
-6. Move the pointer over the nebula and the whole field drifts slightly toward it (stars travel further than gas), like looking through a porthole; stars near the pointer glint.
+6. Move the pointer over the nebula and the whole field drifts slightly toward it. The background stars sit at three depths, so the near layer travels furthest while the far layer barely moves — a porthole rather than a flat starfield; stars near the pointer glint.
 7. Tap the nebula and a ripple spreads from the hit point, then fades.
 8. When collapsed, the orb's glyph and halo take the colour of your latest prompt, and a highlight crawls around the ring once every 7.5 s.
+9. Every prompt gets a stable hashed call sign (e.g. `LYRA-7F2`), shown in the nebula HUD, the panel footer, the footprint label and the hover tooltip. The same text always gets the same sign; identity is still the message id.
 
 Atmosphere details (all part of the optional "feel" layer; none of them feed any semantic computation):
 
 - **Breathing** — the whole disc scales ±1.6% on a ~30 s cycle, so a still frame never reads as a wallpaper.
 - **Outward beads** — one faint bead per arm drifts outward while riding the pattern, reading as star formation in a density wave; its direction always matches the spin.
 - **Inter-arm dust** — the gaps between the arms are not empty: each holds a scatter of fine points whose shear is far softer than the arms (`WIND * 0.34`), so it reads as thin gas co-rotating with the disc rather than as a second density wave. The count follows the embedding-dimension tier (220 / 380 / 560), so a higher setting fills the gaps further, not just the arms.
+- **Three star depths** — the 200 background stars are split across three layers with parallax 2.6 / 1.4 / 0.6, decreasing in size and brightness with distance. The layers are interleaved, so every detail tier keeps the same depth mix.
+- **Answer echo** — a submission sends an outward shock ring; a completed answer replies with a brightness-only wave sweeping from the outer arms back to the core. It only scales layer alpha: neither `angle` nor any radius changes, so the spin and winding invariants are untouched. Disabled under reduced motion.
 - **Meteors** — roughly every 10 s a meteor crosses a corner of the frame: one gradient line plus one sprite.
 - **Soft core** — a wide dim halo plus a small nucleus, with the four flares shaped as diamonds that taper to a point; every layer stays under the additive clipping threshold, so the centre reads as one star instead of a hard white disc with a cross. The arms work the same way: several strokes from wide to narrow, each with a radial fade, so no ribbon is ever sheared off flat.
 - **Film grain** — a 128² noise tile composited with `overlay`; it adds texture to the dark areas and doubles as dithering against 8-bit banding.
@@ -67,7 +70,7 @@ Atmosphere details (all part of the optional "feel" layer; none of them feed any
 
 The card itself follows DSH's light / dark appearance: surface, ink, hairlines, inputs and selected states all come from the host design tokens (`--dsw-alias-bg-layer-1`, `--dsw-alias-label-primary`, `--dsw-alias-border-l2`, …), so light is white glass, dark is smoked glass, and custom themes are followed as well. The adaptation is pure CSS — the host flips `data-ds-dark-theme` on `<body>` and the plugin reads that attribute; there is no theme subscription and no extra render.
 
-Both canvases stay dark in either appearance: space is always dark outside the porthole, only the frame is repainted. Star colours still come from the palette (Deep space / Aurora / Corona) and are not overridden by the theme.
+Both canvases stay dark in either appearance: space is always dark outside the porthole, only the frame is repainted. Star colours still come from the palette (Deep space / Aurora / Corona / Silver / Supernova) and are not overridden by the theme. The last two are a near-monochrome silver plate and a gold/red supernova; the first three mappings are unchanged, so switching palettes never repaints existing footprints.
 
 ## Rotation and physics
 
@@ -94,7 +97,7 @@ The gear in the window's top-right corner opens settings:
 | Auto-open on submit | Fires once for a new submission in the current session |
 | Keep semantic footprint | Writes to this machine's `localStorage`, visible only on this device |
 | Embedding dimensions | 8192 standard / 16384 fine / 32768 maximum (only changes how much detail is drawn, including the fill between the arms; never the geometry) |
-| Palette | Deep space / Aurora / Corona |
+| Palette | Deep space / Aurora / Corona / Silver / Supernova |
 | Motion | Always full (default) / Follow system |
 | Speed | Low / Medium (default) / High |
 
@@ -194,7 +197,7 @@ It measures angular velocity with a cyclic cross-correlation of full-turn angula
 
 ## Trade-offs
 
-The original plan — a `bge-small-zh-v1.5-int8.onnx` local embedding plus a precomputed UMAP terrain — was simplified in this delivery to a **deterministic local hash embedding** with **fixed projection geometry**. No model file is loaded, so semantic fidelity is modest, but the cost is zero network, zero model overhead and about 143 KB. If you later want stronger semantic grouping, replace `analyze()` in `engine.ts`; the view layer needs no changes.
+The original plan — a `bge-small-zh-v1.5-int8.onnx` local embedding plus a precomputed UMAP terrain — was simplified in this delivery to a **deterministic local hash embedding** with **fixed projection geometry**. No model file is loaded, so semantic fidelity is modest, but the cost is zero network, zero model overhead and about 142 KB (about 32 KB gzipped). If you later want stronger semantic grouping, replace `analyze()` in `engine.ts`; the view layer needs no changes.
 
 ## License
 

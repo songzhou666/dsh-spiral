@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { motionEnabled, speedScale } from './motion'
-import { PALETTE_NAMES, schemeOf } from './engine'
+import { PALETTE_NAMES, constellationId, schemeOf } from './engine'
 import type { NebulaFace, NebulaPoint, NebulaSettings } from './types'
 import { SpriteCache, TAU, clamp, hexToRgba, makeRng } from './canvas'
 
@@ -9,6 +9,8 @@ export interface NebulaCanvasProps {
   readonly point: NebulaPoint | undefined
   readonly settings: NebulaSettings
   readonly playing: boolean
+  /** Host event time of the latest completed answer; a change fires the echo. */
+  readonly answerTime?: number
 }
 
 interface ArmParticle {
@@ -39,7 +41,19 @@ interface Star {
   readonly phase: number
   readonly speed: number
   readonly tint: number
+  readonly layer: number
 }
+
+/**
+ * Three depths of foreground stars. Near dust drifts the most and stays bright,
+ * far dust barely moves and reads dimmer — the pointer turns a flat starfield
+ * into a porthole. Every layer still only translates; nothing here rotates.
+ */
+const STAR_LAYERS = [
+  { parallax: 2.6, size: 1, alpha: 1 },
+  { parallax: 1.4, size: 0.72, alpha: 0.8 },
+  { parallax: 0.6, size: 0.46, alpha: 0.58 },
+] as const
 
 interface Mote {
   readonly r: number
@@ -96,11 +110,11 @@ const WIND_WOBBLE = WIND * 0.0875
  * wave, so the core turns fastest. Every layer adds a positive multiple of
  * `angle`, which is why no part of the nebula can ever read as counter-rotating.
  */
-export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasProps): React.ReactElement {
+export function NebulaCanvas({ face, point, settings, playing, answerTime }: NebulaCanvasProps): React.ReactElement {
   const hostRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const stateRef = useRef({ point, settings, playing })
-  stateRef.current = { point, settings, playing }
+  const stateRef = useRef({ point, settings, playing, answerTime })
+  stateRef.current = { point, settings, playing, answerTime }
 
   useEffect(() => {
     const host = hostRef.current
@@ -111,13 +125,17 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
 
     const stars: Star[] = []
     for (let i = 0; i < 200; i++) {
+      // Round-robin, not three contiguous blocks: the dims setting draws a
+      // prefix of this list, so every density keeps the same depth mix.
+      const layer = i % STAR_LAYERS.length
       stars.push({
         x: rng(),
         y: rng(),
-        size: 0.45 + Math.pow(rng(), 2.2) * 1.9,
+        size: (0.45 + Math.pow(rng(), 2.2) * 1.9) * STAR_LAYERS[layer]!.size,
         phase: rng() * TAU,
         speed: 0.12 + rng() * 0.55,
         tint: Math.floor(rng() * STAR_TINTS.length),
+        layer,
       })
     }
 
@@ -214,6 +232,11 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
     let disposed = false
     let last = performance.now()
     let lastPid: string | undefined
+    // Answer echo: a brightness-only wave that walks in from the outer arm to
+    // the core. It never touches `angle` or any radius, so the winding and
+    // rotation invariants measured by verify-physics.mjs are untouched.
+    let lastAnswerTime = stateRef.current.answerTime
+    let echo = 0
     let angle = 0
     let energy = 0.55
     let enter = 0
@@ -301,6 +324,23 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
 
       const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000))
       last = now
+      // A new completed answer sends one inward reply to the outgoing shock
+      // ring of the submission. Only a brightness envelope is animated.
+      const answerAt = state.answerTime
+      if (answerAt !== undefined && answerAt !== lastAnswerTime) {
+        lastAnswerTime = answerAt
+        if (!calm()) echo = 1
+      }
+      if (echo > 0) echo = Math.max(0, echo - dt / 1.6)
+      const quiet = calm()
+      // `echo` doubles as the wave front: 1 at the rim, 0 at the core.
+      const echoAt = (t: number): number => {
+        if (echo <= 0 || quiet) return 0
+        const d = (t - echo) / 0.09
+        return Math.exp(-d * d) * (0.35 + echo * 0.65)
+      }
+      const echoAtCore = echo > 0 && !quiet ? Math.exp(-Math.pow(echo / 0.12, 2)) * 0.3 : 0
+
       const pid = state.point?.id
       if (pid !== lastPid) {
         lastPid = pid
@@ -411,7 +451,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
         const x = cx + Math.cos(theta) * r
         const y = cy + Math.sin(theta) * r * PERSPECTIVE
         const size = radius * cloud.size * (2.4 + pv * 1.2)
-        ctx.globalAlpha = cloud.alpha * (0.45 + pv * 0.9) * (0.5 + enter * 0.5)
+        ctx.globalAlpha = cloud.alpha * (0.45 + pv * 0.9) * (0.5 + enter * 0.5) * (1 + echoAt(cloud.t) * 1.8)
         ctx.drawImage(sprites.get(scheme.arms[cloud.tint % 4]!), x - size / 2, y - size / 2, size, size)
       }
 
@@ -485,7 +525,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
           const y = cy + Math.sin(theta) * r * PERSPECTIVE
           const size = radius * (0.17 + t * 0.13) * (0.9 + pv * 0.5)
           const tint = clamp(Math.floor(t * 3.15), 0, 3)
-          const base = (0.017 + pv * 0.024) * (0.35 + enter * 0.65)
+          const base = (0.017 + pv * 0.024) * (0.35 + enter * 0.65) * (1 + echoAt(t) * 1.8)
           for (const [scale, weight] of [[0.95, 0.6], [1.75, 0.4]] as const) {
             const spread = size * scale
             ctx.globalAlpha = base * weight
@@ -514,7 +554,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
         // are what make the gaps read as scattered matter; a big soft stamp here
         // would only wash the disc into an even haze.
         const size = (2.2 + gap.t * 5 + pv * 3) * (0.7 + gap.size * 0.55) * breathe
-        ctx.globalAlpha = (0.045 + pv * 0.1) * fade * (0.4 + clump * 0.8)
+        ctx.globalAlpha = (0.045 + pv * 0.1) * fade * (0.4 + clump * 0.8) * (1 + echoAt(gap.t) * 1.6)
         ctx.drawImage(sprites.get(scheme.dust[gap.tint]!), x - size / 2, y - size / 2, size, size)
         // One in six keeps a wide, very faint bloom under it, so the powder sits
         // on a thin floor of gas instead of floating on black.
@@ -538,7 +578,12 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
         const fade = (0.35 + 0.65 * Math.min(1, particle.t * 2.4)) * (0.35 + enter * 0.65)
         const size = (3.4 + particle.t * 8.4 + pv * 6) * (0.7 + particle.size * 0.55)
         const color = particle.hot ? scheme.core : scheme.arms[particle.tint]!
-        ctx.globalAlpha = (0.024 + pv * 0.09) * fade * (particle.hot ? 1.7 : 1)
+        const glow = echoAt(particle.t)
+        ctx.globalAlpha = clamp(
+          (0.024 + pv * 0.09) * fade * (particle.hot ? 1.7 : 1) * (1 + glow * 2.4) + glow * 0.045,
+          0,
+          1,
+        )
         ctx.drawImage(sprites.get(color), x - size / 2, y - size / 2, size, size)
         // A short wake at an earlier phase makes the trailing direction legible.
         if (!calm() && (particle.hot || index % 5 === 0)) {
@@ -599,9 +644,10 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       const accentStar = hexToRgba(scheme.accent, 1)
       for (let index = 0; index < starCount; index++) {
         const star = stars[index]!
+        const layer = STAR_LAYERS[star.layer]!
         const twinkle = 0.35 + 0.65 * Math.abs(Math.sin(star.phase + now * 0.001 * star.speed))
-        const x = star.x * width + Math.sin(now * 0.00008 + star.phase) * 6 + driftX * 2.6
-        const y = star.y * height + Math.cos(now * 0.00006 + star.phase) * 4 + driftY * 2.2
+        const x = star.x * width + Math.sin(now * 0.00008 + star.phase) * 6 + driftX * layer.parallax
+        const y = star.y * height + Math.cos(now * 0.00006 + star.phase) * 4 + driftY * layer.parallax * 0.85
         let glint = 0
         if (pointerIn && !calm()) {
           const gx = x - pointerX
@@ -612,11 +658,11 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
             glint *= glint
           }
         }
-        ctx.globalAlpha = twinkle * (0.62 + glint * 0.85)
+        ctx.globalAlpha = twinkle * (0.62 + glint * 0.85) * layer.alpha
         ctx.fillStyle = star.tint === 3 && index % 7 === 0 ? accentStar : STAR_TINTS[star.tint]!
         ctx.fillRect(x, y, star.size, star.size)
         if (star.size > 1.55) {
-          ctx.globalAlpha = twinkle * 0.22
+          ctx.globalAlpha = twinkle * 0.22 * layer.alpha
           ctx.fillRect(x - 3, y + star.size / 2 - 0.25, 6 + star.size, 0.5)
           ctx.fillRect(x + star.size / 2 - 0.25, y - 3, 0.5, 6 + star.size)
         }
@@ -682,7 +728,7 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       ctx.drawImage(sprites.get(scheme.accent), cx - coreSize * 4.8, cy - coreSize * 4.8, coreSize * 9.6, coreSize * 9.6)
       ctx.globalAlpha = 0.2
       ctx.drawImage(sprites.get(scheme.core), cx - coreSize * 2.7, cy - coreSize * 2.7, coreSize * 5.4, coreSize * 5.4)
-      ctx.globalAlpha = 0.58
+      ctx.globalAlpha = Math.min(1, 0.58 + echoAtCore)
       ctx.drawImage(sprites.get(scheme.core), cx - coreSize * 1.05, cy - coreSize * 1.05, coreSize * 2.1, coreSize * 2.1)
 
       // Flares are tapered diamonds, not rectangles: the silhouette itself thins
@@ -757,6 +803,18 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
         ctx.arc(cx, cy, radius * (0.98 + k * 0.3), 0, TAU)
         ctx.strokeStyle = hexToRgba(scheme.accent, shock * 0.18)
         ctx.lineWidth = 2.5
+        ctx.stroke()
+      }
+
+      // Reply echo: one brightness-only ring walking from the rim to the core.
+      // It carries no angular velocity and moves no particle, so the winding
+      // and rotation probes see exactly the same geometry as before.
+      if (echo > 0 && !quiet) {
+        ctx.globalAlpha = 1
+        ctx.beginPath()
+        ctx.arc(cx, cy, radius * (0.06 + echo * 1.02), 0, TAU)
+        ctx.strokeStyle = hexToRgba(scheme.core, echo * 0.16)
+        ctx.lineWidth = 1.2
         ctx.stroke()
       }
 
@@ -835,7 +893,8 @@ export function NebulaCanvas({ face, point, settings, playing }: NebulaCanvasPro
       ctx.textAlign = 'left'
       ctx.textBaseline = 'bottom'
       ctx.fillStyle = 'rgba(178, 210, 255, 0.34)'
-      const roamLabel = roam !== undefined ? roam.label : state.point === undefined ? 'AWAITING SIGNAL' : `TOK ${state.point.tokens}`
+      const callSign = state.point === undefined ? 'AWAITING SIGNAL' : `ID ${constellationId(state.point.text)}`
+      const roamLabel = roam !== undefined ? `${callSign} · ${roam.label}` : callSign
       if (ctx.measureText(roamLabel).width > width - 100) ctx.font = '8px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
       ctx.fillText(roamLabel.slice(0, 24), 12, height - 10)
       ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'

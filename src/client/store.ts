@@ -1,4 +1,4 @@
-import { analyze, sequenceOf, PROFILE_BANDS, type EmbeddingDims, type SequenceFrame } from './engine'
+import { analyze, sequenceOf, PROFILE_BANDS, SCHEME_BASE_MODULUS, type EmbeddingDims, type SequenceFrame } from './engine'
 import type { MotionMode, SpeedLevel } from './motion'
 import type {
   NebulaFace,
@@ -139,7 +139,7 @@ function storedToPoint(stored: StoredPoint): NebulaPoint | undefined {
         axis,
         mapX: Number(stored.mapX) || 0,
         mapY: Number(stored.mapY) || 0,
-        schemeBase: Math.abs(Math.trunc(Number(stored.schemeBase) || 0)) % 6,
+        schemeBase: Math.abs(Math.trunc(Number(stored.schemeBase) || 0)) % SCHEME_BASE_MODULUS,
         magnitude: Math.min(1, Math.max(0.3, Number(stored.magnitude) || 0.7)),
         tokens: Math.max(0, Math.trunc(Number(stored.tokens) || 0)),
       }

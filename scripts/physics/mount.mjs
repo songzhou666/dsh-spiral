@@ -49,7 +49,7 @@ const settings = {
   autoOpen: true,
   persist: false,
   dims: window.__nebulaDims ?? 8192,
-  palette: 0,
+  palette: window.__nebulaPalette ?? 0,
   motion: window.__nebulaMotion ?? 'auto',
   speed: window.__nebulaSpeed ?? 'mid',
 }
@@ -77,8 +77,12 @@ const point = {
 }
 
 const cell = __begin()
-const tree = NebulaCanvas({ face, point, settings, playing: false })
+const tree = NebulaCanvas({ face, point, settings, playing: false, answerTime: window.__nebulaAnswerTime })
 __end()
+
+// hostRef, canvasRef, stateRef — the third ref lets a preview harness fire an
+// answer echo by setting `answerTime` without a real React renderer.
+window.__nebulaStateRef = cell.refs?.[2]
 
 const root = document.getElementById('root')
 root.appendChild(render(tree))

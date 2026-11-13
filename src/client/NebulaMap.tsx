@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { motionEnabled } from './motion'
-import { schemeOf } from './engine'
+import { constellationId, schemeOf } from './engine'
 import type { NebulaFace, NebulaPoint, NebulaSettings } from './types'
 import { SpriteCache, TAU, clamp, hexToRgba } from './canvas'
 
@@ -370,7 +370,7 @@ export function MapCanvas({ face, points, currentId, settings, playing }: MapCan
           ctx.stroke()
         }
 
-        const label = current.text.replace(/\s+/g, ' ').trim().slice(0, 26)
+        const label = `${constellationId(current.text)} · ${current.text.replace(/\s+/g, ' ').trim().slice(0, 20)}`
         ctx.font = '10px system-ui, -apple-system, "Segoe UI", sans-serif'
         const metrics = ctx.measureText(label)
         const boxW = metrics.width + 14
@@ -402,7 +402,7 @@ export function MapCanvas({ face, points, currentId, settings, playing }: MapCan
         ctx.font = '10px system-ui, -apple-system, "Segoe UI", sans-serif'
         const metrics = ctx.measureText(label)
         const boxW = metrics.width + 16
-        const boxH = 34
+        const boxH = 46
         let boxX = x + 14
         let boxY = y + 18
         if (boxX + boxW > width - 8) boxX = x - boxW - 14
@@ -425,6 +425,7 @@ export function MapCanvas({ face, points, currentId, settings, playing }: MapCan
           ? '--:--'
           : `${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`
         ctx.fillText(`${clock}  TOK ${hovered.tokens}  Σ ${hovered.magnitude.toFixed(2)}`, boxX + 8, boxY + 20)
+        ctx.fillText(`ID ${constellationId(hovered.text)}`, boxX + 8, boxY + 32)
       }
 
       // HUD.

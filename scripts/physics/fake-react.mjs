@@ -16,7 +16,14 @@ export function useEffect(fn) {
 }
 
 export function useRef(value) {
-  return { current: value }
+  const ref = { current: value }
+  // Collected so preview harnesses can push fresh props into a mounted canvas
+  // (e.g. an answer timestamp) without needing a real React renderer.
+  if (collector !== null) {
+    if (collector.refs === undefined) collector.refs = []
+    collector.refs.push(ref)
+  }
+  return ref
 }
 
 export function useState(value) {

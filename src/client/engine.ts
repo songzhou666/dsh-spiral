@@ -77,16 +77,44 @@ const FAMILIES: readonly SchemeSeed[] = [
     core: '#eef9ff',
     ambient: 'rgba(40, 120, 255, 0.20)',
   },
+  {
+    id: 'silver',
+    name: 'SILVER',
+    arms: ['#f4f7fb', '#c8d3e2', '#8e9bad', '#ffffff'],
+    core: '#ffffff',
+    ambient: 'rgba(190, 205, 225, 0.13)',
+  },
+  {
+    id: 'nova',
+    name: 'NOVA',
+    arms: ['#ffd07a', '#ff7a4c', '#ff3d6e', '#fff0cf'],
+    core: '#fff6e8',
+    ambient: 'rgba(255, 110, 60, 0.20)',
+  },
 ]
 
-/** Palette 0 deep space, 1 aurora, 2 solar — each a mood-filtered family set. */
+/**
+ * Historic modulus for the per-prompt scheme base. Palette rows have four
+ * slots, so the base only ever addresses 0..3. New colour families are reached
+ * through new palette rows, never by widening this modulus: doing that would
+ * rehash every stored footprint and repaint the history after an upgrade.
+ */
+export const SCHEME_BASE_MODULUS = 6
+
+/**
+ * Palette 0 deep space, 1 aurora, 2 solar — each a mood-filtered family set.
+ * 3 is a near-monochrome silver plate, 4 a gold/red supernova. The first three
+ * rows are unchanged: adding palettes never repaints an existing footprint.
+ */
 const PALETTE_FAMILIES: readonly (readonly number[])[] = [
   [0, 5, 1, 2],
   [3, 0, 1, 5],
   [4, 2, 1, 0],
+  [6, 6, 6, 0],
+  [7, 4, 7, 2],
 ]
 
-export const PALETTE_NAMES = ['深空', '极光', '日冕'] as const
+export const PALETTE_NAMES = ['深空', '极光', '日冕', '银盐', '超新星'] as const
 
 /** Resolve the scheme for a stored base family under the active palette. */
 export function schemeOf(base: number, palette: number): NebulaScheme {
@@ -455,7 +483,7 @@ export function analyze(text: string, _dims: EmbeddingDims = 8192): Analysis {
   }
   const axis: [number, number, number] = [raw[0]! / projNorm, raw[1]! / projNorm, raw[2]! / projNorm]
   const tokens = tokenizePrompt(text).length
-  const schemeBase = hashString(text, 0x7c3f91b5) % FAMILIES.length
+  const schemeBase = hashString(text, 0x7c3f91b5) % SCHEME_BASE_MODULUS
   const magnitude = Math.max(0.35, Math.min(1, 0.35 + projNorm * 1.25))
 
   return {
@@ -508,6 +536,24 @@ export function demoProfile(): Float32Array {
     profile[i] = Math.max(0.08, Math.min(1, 0.16 + a * 0.44 + b * 0.3 + c * 0.16))
   }
   return profile
+}
+
+/** Fixed constellation prefixes; a prompt keeps the same call sign forever. */
+const CONSTELLATIONS = [
+  'LYRA', 'CYGN', 'ORIO', 'VELA', 'DRAC', 'AQUI', 'PERSE', 'CASS',
+  'ANDR', 'CETU', 'HYDR', 'CENT', 'SCOR', 'TAUR', 'GEMI', 'PEGAS',
+] as const
+
+/**
+ * Stable call sign for a prompt, e.g. `LYRA-7F2`. Purely decorative: identity
+ * is still the message id. The seed is separate from the geometry and palette
+ * hashes so adding a HUD label cannot shift where a prompt lands.
+ */
+export function constellationId(text: string): string {
+  const h = hashString(text, 0x4c7f1a2d)
+  const name = CONSTELLATIONS[h % CONSTELLATIONS.length]!
+  const code = ((h >>> 12) & 0xfff).toString(16).toUpperCase().padStart(3, '0')
+  return `${name}-${code}`
 }
 
 /** Stable short label for a prompt. */
