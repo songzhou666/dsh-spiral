@@ -6,6 +6,10 @@ node_modules/
 .cache/
 *.log
 
+# local npm pack output; the shipped tarball is force-added on purpose
+# (dsh-spiral-0.7.0.tgz is the downloadable release artifact, npm is not used)
+*.tgz
+
 # editor / OS
 .DS_Store
 .idea/

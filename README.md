@@ -19,21 +19,41 @@
 
 ## 安装
 
-本仓库已标记 `dsh-plugin` / `deepseek-harness` topic，并在 `package.json` 中声明 `dsh.bundle` manifest，可被 DSH 社区插件市场自动收录；市场的安装计划会读取仓库根目录的 `cordis.patch.yml`。手动安装按下面三步走。
+> **当前版本 0.7.0**（2026-11-13）。本插件**尚未发布到 npm**，请不要执行 `npm install dsh-spiral`；目前只通过 GitHub 分发。
+>
+> `v0.6.0` 及更早的 tag 是旧快照，不含会话星群、双生轮廓与星图卡片导出。要拿最新版，请认准 **main 分支 / `v0.7.0` tag / `dsh-spiral-0.7.0.tgz`**。
+
+本仓库已标记 `dsh-plugin` / `deepseek-harness` topic，并在 `package.json` 中声明 `dsh.bundle` manifest，可被 DSH 社区插件市场自动收录；市场的安装计划会读取仓库根目录的 `cordis.patch.yml`。手动安装时，先用下面任一方式取包，再做统一的最后一步。
 
 DSH 通过 **profile 的 pnpm 依赖** 发现插件，所以插件包必须先成为 `~/.dsh/profiles/web` 的本地依赖，再在 `cordis.patch.yml` 中声明。
 
 > 包名是 `dsh-spiral`（npm 上的 `dsh-nebula` 已被另一个同名极光插件占用），项目/产品名仍然叫 **SemanticNebula · 语义星云**。
 
+### 方式 A：分发包（推荐）
+
+下载仓库根目录的 `dsh-spiral-0.7.0.tgz`（约 1.5 MB，已含构建好的 `lib/`，不必自己编译），然后：
+
 ```bash
-# 1) 取回源码
+cd ~/.dsh/profiles/web
+pnpm add /path/to/dsh-spiral-0.7.0.tgz
+```
+
+### 方式 B：源码
+
+```bash
+# 1) 取回源码（已有克隆就直接 git pull）
 git clone https://github.com/songzhou666/dsh-spiral.git
 
 # 2) 让 profile 认识这个包（本地目录，不发布到 npm）
 cd ~/.dsh/profiles/web
 pnpm add /path/to/dsh-spiral
+```
 
-# 3) 在 ~/.dsh/profiles/web/cordis.patch.yml 末尾追加仓库自带的片段
+### 两种方式都要做的最后一步
+
+在 `~/.dsh/profiles/web/cordis.patch.yml` 末尾追加仓库自带的片段：
+
+```yaml
 - insert:
     - id: dsh-spiral-bundle
       name: dsh-spiral
@@ -42,6 +62,8 @@ pnpm add /path/to/dsh-spiral
 重启 DSH Web 服务后，右下角会出现一枚乳白色悬浮球。
 
 > 说明：`dsh plugin --profile web` 只负责包管理；真正让宿主加载插件的是 `cordis.patch.yml` 里的 `insert` 条目。两者缺一不可。
+>
+> **已装过旧版怎么更新**：在克隆目录 `git pull`，或直接换成 0.7.0 的 tgz，再在 profile 里重新 `pnpm add` 一次并重启服务。判断是否生效：面板 HUD 出现 `CLUSTER` / `DUAL` 字样、右下角有导出按钮，即已是 0.7.0。
 
 ## 使用
 

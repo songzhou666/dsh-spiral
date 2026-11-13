@@ -19,21 +19,41 @@ English | [中文](README.md)
 
 ## Install
 
-This repo carries the `dsh-plugin` / `deepseek-harness` topics and declares a `dsh.bundle` manifest in `package.json`, so DSH community marketplaces can pick it up automatically; their install plans read the root `cordis.patch.yml`. For a manual install, follow the three steps below.
+> **Current version 0.7.0** (2026-11-13). This plugin is **not published to npm** — do not run `npm install dsh-spiral`; it is distributed through GitHub only.
+>
+> `v0.6.0` and earlier tags are older snapshots without the session cluster, twin silhouette and star-chart export. For the latest build use **the main branch / the `v0.7.0` tag / `dsh-spiral-0.7.0.tgz`**.
+
+This repo carries the `dsh-plugin` / `deepseek-harness` topics and declares a `dsh.bundle` manifest in `package.json`, so DSH community marketplaces can pick it up automatically; their install plans read the root `cordis.patch.yml`. For a manual install, pick one of the two ways to get the package, then do the shared final step.
 
 DSH discovers plugins through the **profile's pnpm dependencies**, so the package has to become a local dependency of `~/.dsh/profiles/web` first, and then be declared in `cordis.patch.yml`.
 
 > The package is called `dsh-spiral` (the name `dsh-nebula` on npm is taken by an unrelated aurora plugin); the project and product name is still **SemanticNebula**.
 
+### Option A: tarball (recommended)
+
+Download `dsh-spiral-0.7.0.tgz` from the repo root (about 1.5 MB, ships the prebuilt `lib/`, no build needed), then:
+
 ```bash
-# 1) Grab the source
+cd ~/.dsh/profiles/web
+pnpm add /path/to/dsh-spiral-0.7.0.tgz
+```
+
+### Option B: source
+
+```bash
+# 1) Grab the source (or git pull an existing clone)
 git clone https://github.com/songzhou666/dsh-spiral.git
 
 # 2) Make the profile aware of the package (local directory, not published to npm)
 cd ~/.dsh/profiles/web
 pnpm add /path/to/dsh-spiral
+```
 
-# 3) Append the snippet shipped in this repo to ~/.dsh/profiles/web/cordis.patch.yml
+### Final step for both options
+
+Append the snippet shipped in this repo to `~/.dsh/profiles/web/cordis.patch.yml`:
+
+```yaml
 - insert:
     - id: dsh-spiral-bundle
       name: dsh-spiral
@@ -42,6 +62,8 @@ pnpm add /path/to/dsh-spiral
 Restart the DSH Web server and a milky-white floating orb appears in the bottom-right corner.
 
 > Note: `dsh plugin --profile web` only does package management. What actually makes the host load the plugin is the `insert` entry in `cordis.patch.yml`. You need both.
+>
+> **Upgrading from an older version**: `git pull` in your clone (or switch to the 0.7.0 tarball), re-run `pnpm add` in the profile and restart. You are on 0.7.0 when the HUD shows `CLUSTER` / `DUAL` and the export button appears in the footer.
 
 ## Usage
 

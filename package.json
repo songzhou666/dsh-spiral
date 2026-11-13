@@ -1,6 +1,6 @@
 {
   "name": "dsh-spiral",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "SemanticNebula (语义星云) — decorative DSH / DeepSeek Harness plugin: every prompt becomes a rotating four-arm spiral nebula with a local semantic footprint map. No model, no network, about 160 KB (36 KB gzipped).",
   "type": "module",
   "author": "songzhou666",
@@ -54,6 +54,7 @@
     "src",
     "scripts",
     "docs",
+    "!docs/assets/*.gif",
     "cordis.patch.yml",
     "dev.patch.yml",
     "icon.svg",
