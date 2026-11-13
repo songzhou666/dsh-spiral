@@ -1,7 +1,7 @@
 {
   "name": "dsh-spiral",
   "version": "0.6.0",
-  "description": "SemanticNebula (语义星云) — decorative DSH / DeepSeek Harness plugin: every prompt becomes a rotating four-arm spiral nebula with a local semantic footprint map. No model, no network, about 142 KB (32 KB gzipped).",
+  "description": "SemanticNebula (语义星云) — decorative DSH / DeepSeek Harness plugin: every prompt becomes a rotating four-arm spiral nebula with a local semantic footprint map. No model, no network, about 160 KB (36 KB gzipped).",
   "type": "module",
   "author": "songzhou666",
   "license": "MIT",
@@ -78,23 +78,26 @@
     "catalog": {
       "category": "ui",
       "summary": {
-          "en": "A decorative DSH Web GUI plugin that turns every submitted prompt into a slowly rotating four-arm spiral nebula, with a local semantic footprint map beside it. No network, no model, no message access; client bundle about 142 KB (32 KB gzipped).",
-          "zh": "纯装饰性 DSH Web GUI 插件：把每条提示词实时投影成一片会自转的四臂旋涡星云，并在旁边绘制本地语义足迹图。不联网、不调模型、不读取消息内容，客户端产物约 142 KB（gzip 约 32 KB）。"
+          "en": "A decorative DSH Web GUI plugin that turns every submitted prompt into a slowly rotating four-arm spiral nebula, with a local semantic footprint map beside it. No network, no model, no message access; client bundle about 160 KB (36 KB gzipped).",
+          "zh": "纯装饰性 DSH Web GUI 插件：把每条提示词实时投影成一片会自转的四臂旋涡星云，并在旁边绘制本地语义足迹图。不联网、不调模型、不读取消息内容，客户端产物约 160 KB（gzip 约 36 KB）。"
       },
       "capabilities": [
         "Live prompt-to-nebula projection using deterministic local hashing",
         "Semantic footprint map with history trail and coordinate grid",
+        "Session cluster: up to 12 earlier prompts become companion stars in the halo",
+        "Twin silhouette: a completed answer blends its outline into the question's galaxy",
+        "One-click offline PNG star-chart card export with call signs and analysis readout",
         "Draggable, resizable 520 x 352 panel following host light and dark themes",
         "Semantic roaming playback for prompts and model answers",
-    "Five colour schemes with layered star parallax, answer echo and reduced-motion support",
-    "Zero runtime dependencies, zero network calls, client bundle about 142 KB (32 KB gzipped)"
+        "Five colour schemes with layered star parallax, answer echo and reduced-motion support",
+        "Zero runtime dependencies, zero network calls, client bundle about 160 KB (36 KB gzipped)"
       ]
     }
   },
   "scripts": {
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
-    "test": "node scripts/test-engine.mjs && node scripts/test-controller.mjs",
+    "test": "node scripts/test-engine.mjs && node scripts/test-controller.mjs && node scripts/test-companions.mjs",
     "verify": "node scripts/verify-physics.mjs"
   },
   "devDependencies": {

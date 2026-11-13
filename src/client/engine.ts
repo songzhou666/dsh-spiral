@@ -556,6 +556,58 @@ export function constellationId(text: string): string {
   return `${name}-${code}`
 }
 
+/* ------------------------------------------------------------- companions */
+
+/** How many earlier prompts in a session are drawn as companion stars. */
+export const COMPANION_LIMIT = 12
+
+export interface CompanionSeed {
+  readonly id: string
+  readonly text: string
+  readonly mapX: number
+  readonly mapY: number
+  readonly magnitude: number
+  readonly schemeBase: number
+}
+
+export interface CompanionOrbit {
+  /** Azimuth around the main disc, in radians. */
+  readonly theta: number
+  /** Orbital radius as a multiple of the main disc radius. */
+  readonly orbit: number
+  readonly size: number
+  readonly alpha: number
+  /** 0 = oldest companion kept, 1 = most recent. */
+  readonly recency: number
+  readonly label: string
+  readonly phase: number
+  readonly schemeBase: number
+}
+
+/**
+ * Place one earlier prompt as a companion star in the halo outside the disc.
+ * The semantic map supplies the azimuth; a hash of the message id separates
+ * prompts that landed at nearly the same coordinate. Everything derives from
+ * stored fields, so a reloaded history reproduces exactly the same cluster.
+ */
+export function companionOrbit(seed: CompanionSeed, index: number, count: number): CompanionOrbit {
+  const jitter = hashString(seed.id, 0x6a1f3c8d) / 4294967296
+  const theta = Math.atan2(seed.mapY, seed.mapX) + (jitter - 0.5) * 0.72
+  const energy = Math.min(1, Math.max(0, seed.magnitude - 0.35))
+  const orbit = 1.14 + jitter * 0.26 + energy * 0.08
+  const recency = count <= 1 ? 1 : (index + 1) / count
+  return {
+    theta,
+    orbit,
+    size: 2.5 + recency * 3.6,
+    alpha: 0.16 + Math.pow(recency, 1.4) * 0.46,
+    recency,
+    label: constellationId(seed.text),
+    phase: jitter * Math.PI * 2,
+    schemeBase: seed.schemeBase,
+  }
+}
+
 /** Stable short label for a prompt. */
 export function promptLabel(text: string, max = 34): string {
   const compact = text.replace(/\s+/g, ' ').trim()

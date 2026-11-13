@@ -76,8 +76,37 @@ const point = {
   tokens: 24,
 }
 
+// Preview harnesses can ask for companion stars and a twin-silhouette answer.
+// Physics runs keep both at zero, so the measured frame is the same disc as
+// before these features existed.
+const clusterSize = window.__nebulaCluster ?? 0
+const history = []
+for (let i = 0; i < clusterSize; i++) {
+  const bearing = (i / Math.max(1, clusterSize)) * Math.PI * 2
+  history.push({
+    ...point,
+    id: `cluster-${i}`,
+    text: `第 ${i + 1} 条提示词：星云与语义足迹`,
+    time: (i + 1) * 60_000,
+    capturedAt: (i + 1) * 60_000,
+    mapX: Math.cos(bearing) * 0.72,
+    mapY: Math.sin(bearing) * 0.72,
+    magnitude: 0.45 + (i / Math.max(1, clusterSize)) * 0.5,
+    schemeBase: i % 6,
+  })
+}
+const points = [...history, point]
+
 const cell = __begin()
-const tree = NebulaCanvas({ face, point, settings, playing: false, answerTime: window.__nebulaAnswerTime })
+const tree = NebulaCanvas({
+  face,
+  point,
+  settings,
+  playing: false,
+  answerTime: window.__nebulaAnswerTime,
+  points,
+  answer: undefined,
+})
 __end()
 
 // hostRef, canvasRef, stateRef — the third ref lets a preview harness fire an

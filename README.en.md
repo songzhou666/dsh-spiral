@@ -15,7 +15,7 @@ English | [中文](README.md)
 - It never intercepts or wraps the DSH composer
 - It never reads or uploads message content
 - No network, no model, no inference calls (the embedding is a local deterministic hash — see *Trade-offs*)
-- Client bundle about 142 KB (about 32 KB gzipped), no runtime dependencies
+- Client bundle about 160 KB (about 36 KB gzipped), no runtime dependencies
 
 ## Install
 
@@ -54,6 +54,9 @@ Restart the DSH Web server and a milky-white floating orb appears in the bottom-
 7. Tap the nebula and a ripple spreads from the hit point, then fades.
 8. When collapsed, the orb's glyph and halo take the colour of your latest prompt, and a highlight crawls around the ring once every 7.5 s.
 9. Every prompt gets a stable hashed call sign (e.g. `LYRA-7F2`), shown in the nebula HUD, the panel footer, the footprint label and the hover tooltip. The same text always gets the same sign; identity is still the message id.
+10. The current prompt owns the main galaxy; the 12 most recent earlier prompts in this session become companion stars around it. Submitting a new one promotes the previous to a fading-in companion, so a long conversation keeps accumulating a halo.
+11. When the model finishes an answer, the brightness outline eases from the question's shape to the answer's over 1.8 s, with a `DUAL 54%` readout in the top-right HUD.
+12. The download button at the bottom right of the panel exports the current frame as a 1200 x 900 star-chart PNG (prompt, call sign and local readout included). It is generated locally and disabled when there is no semantic point yet.
 
 Atmosphere details (all part of the optional "feel" layer; none of them feed any semantic computation):
 
@@ -65,6 +68,16 @@ Atmosphere details (all part of the optional "feel" layer; none of them feed any
 - **Meteors** — roughly every 10 s a meteor crosses a corner of the frame: one gradient line plus one sprite.
 - **Soft core** — a wide dim halo plus a small nucleus, with the four flares shaped as diamonds that taper to a point; every layer stays under the additive clipping threshold, so the centre reads as one star instead of a hard white disc with a cross. The arms work the same way: several strokes from wide to narrow, each with a radial fade, so no ribbon is ever sheared off flat.
 - **Film grain** — a 128² noise tile composited with `overlay`; it adds texture to the dark areas and doubles as dithering against 8-bit banding.
+
+## Session cluster, twin silhouette and star-chart card
+
+All three layers share one constraint: no new capture surface, no network, and no change to `angle`, `WIND` or any radius. The physics regression still measures the same disc as before.
+
+**Session cluster** — the opening promise, "every sentence grows one more star in the sky", is now literal. The current prompt owns the main galaxy; the 12 most recent earlier prompts in the session each become a companion in the halo. Azimuth comes from that point's position on the footprint map (`mapX / mapY`), colour from its own family, magnitude from how recent it is. The brightest few carry a cross-shaped sparkle, and every one sits on a short arc of its orbit rather than a spoke aimed at the core. Companions ride the disc at `angle * 0.8 * 0.86`, slightly slower than the pattern, reading as differential rotation in the outer disc. A new submission is what demotes the previous prompt into a companion, which then fades in over 1.1 s — no extra history is stored, and the top-left HUD shows `CLUSTER n/12`. Under reduced motion the halo is static and skips the fade.
+
+**Twin silhouette** — a completed answer does more than send the inward brightness echo: the answer text goes through `analyze()` once to produce a second 256-band outline, which is smoothstep-interpolated with the question's over 1.8 s. Colours blend across the two families in 16 cached steps (`mixHex` results are memoised, so no hex parsing per frame). The HUD shows `DUAL 54%` and the first line becomes `CRYO/IRIS`. Only `profile`, colour and `magnitude` change; `angle`, winding, radii and perspective are untouched. A new question takes over the interpolation base while the mix unwinds to zero, so the previous galaxy never flashes back. Roaming playback takes priority, and clearing the answer eases back smoothly; reduced motion lands on the final outline without a transition.
+
+**Star-chart card** — the download button frames the current frame as a 1200 x 900 PNG. The canvas is synchronously repainted once at 2.5x DPR and copied into an offscreen canvas, then laid out with the title, call sign, prompt text, `TOK` / `ENERGY` / `MAP` / `VEC` / palette / time, finder-frame corner ticks and a "generated locally" watermark; the filename carries the call sign and a timestamp. Everything is `canvas.toBlob` → local download: no dependency, no request. The field uses a contain fit instead of a crop, so the in-frame HUD typography survives — it was part of that frame to begin with.
 
 ## Appearance
 
@@ -131,6 +144,7 @@ The play button replays a semantic roam; it does not start the rotation.
 - No `onInput` hook, no composer scraping, no streaming-token processing.
 - Persistence stores only: the prompt text, its timestamp, and a locally generated 256-band quantised profile.
 - Everything is computed in the browser. There are no network requests at all.
+- Card export only paints already-captured prompts and local results into a PNG downloaded by the browser. Nothing is uploaded or written to a server.
 
 ## Architecture
 
@@ -141,16 +155,20 @@ src/
     index.ts            Client entry: mounts the body-level overlay
     controller.ts       Submission capture / session binding / visibility state machine
     store.ts            Point store, dedupe, localStorage persistence
-    engine.ts           Local deterministic embedding and sequence frames
-motion.ts           Motion policy (full / follow system) and speed tiers
+    engine.ts           Local deterministic embedding, sequence frames, companion orbits
+    motion.ts           Motion policy (full / follow system) and speed tiers
+    canvas.ts           Drawing helpers, colour blending, high-DPR capture event
+    exportCard.ts       Offline star-chart layout and PNG export
     Panel.tsx           Window content (both views + settings)
-    NebulaCanvas.tsx    Left nebula (2D additive blending)
+    NebulaCanvas.tsx    Left nebula (additive blending, session cluster, twin silhouette)
     NebulaMap.tsx       Right semantic map
     Floating.tsx        Drag / resize / collapse to orb
     styles.ts           Milky-glass styling
 scripts/
   build.mjs             esbuild bundle (CJS → lib/client.js)
-  test-*.mjs            Embedding invariants / controller state machine
+  test-engine.mjs       Embedding invariants
+  test-controller.mjs   Controller state machine
+  test-companions.mjs   Companion orbits / colour blending / morph premises
   verify-physics.mjs    Offline physics regression: mounts the real component on a blank page and measures the painted image
 ```
 
@@ -160,7 +178,7 @@ scripts/
 pnpm install
 pnpm build          # builds lib/index.js and lib/client.js
 pnpm watch          # incremental build
-pnpm test           # embedding invariants + controller state machine
+pnpm test           # embedding + controller + companion/morph invariants
 ```
 
 For local debugging, `dev.patch.yml` points the host straight at the build output — no install needed (set its `name` to the absolute path of `lib/index.js` on your machine first):
@@ -197,7 +215,7 @@ It measures angular velocity with a cyclic cross-correlation of full-turn angula
 
 ## Trade-offs
 
-The original plan — a `bge-small-zh-v1.5-int8.onnx` local embedding plus a precomputed UMAP terrain — was simplified in this delivery to a **deterministic local hash embedding** with **fixed projection geometry**. No model file is loaded, so semantic fidelity is modest, but the cost is zero network, zero model overhead and about 142 KB (about 32 KB gzipped). If you later want stronger semantic grouping, replace `analyze()` in `engine.ts`; the view layer needs no changes.
+The original plan — a `bge-small-zh-v1.5-int8.onnx` local embedding plus a precomputed UMAP terrain — was simplified in this delivery to a **deterministic local hash embedding** with **fixed projection geometry**. No model file is loaded, so semantic fidelity is modest, but the cost is zero network, zero model overhead and about 160 KB (about 36 KB gzipped). If you later want stronger semantic grouping, replace `analyze()` in `engine.ts`; the view layer needs no changes.
 
 ## License
 

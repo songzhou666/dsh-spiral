@@ -126,6 +126,15 @@ export function IconSpark(props: GlyphProps): React.ReactElement {
   )
 }
 
+export function IconExport(props: GlyphProps): React.ReactElement {
+  return (
+    <Glyph {...props}>
+      <path d="M12 3.5v10M8.5 10 12 13.5 15.5 10" />
+      <path d="M4.5 15.5v2.8c0 .7.5 1.2 1.2 1.2h12.6c.7 0 1.2-.5 1.2-1.2v-2.8" />
+    </Glyph>
+  )
+}
+
 export function IconWave(props: GlyphProps): React.ReactElement {
   return (
     <Glyph {...props}>

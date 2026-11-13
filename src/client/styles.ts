@@ -468,7 +468,13 @@ body[data-ds-dark-theme] .dnf-root {
   color: var(--dnf-ink-mute);
   font-size: 8.8px;
 }
-.dnp-foot-side { flex: 0 0 auto; display: flex; align-items: center; }
+.dnp-foot-side { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; }
+.dnp-export { width: 24px; height: 24px; }
+.dnp-export[data-done="true"] {
+  color: color-mix(in oklab, var(--dnf-accent, #5f54dc) 78%, var(--dnf-ink));
+  border-color: color-mix(in oklab, var(--dnf-accent, #5f54dc) 34%, transparent);
+  background: color-mix(in oklab, var(--dnf-accent, #5f54dc) 14%, transparent);
+}
 .dnp-mode {
   padding: 3px 5px;
   border-radius: 4px;

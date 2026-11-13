@@ -1,8 +1,27 @@
 import { useEffect, useRef } from 'react'
 import { motionEnabled, speedScale } from './motion'
-import { PALETTE_NAMES, constellationId, schemeOf } from './engine'
+import {
+  COMPANION_LIMIT,
+  PALETTE_NAMES,
+  analyze,
+  companionOrbit,
+  constellationId,
+  schemeOf,
+  type CompanionOrbit,
+  type NebulaScheme,
+} from './engine'
 import type { NebulaFace, NebulaPoint, NebulaSettings } from './types'
-import { SpriteCache, TAU, clamp, hexToRgba, makeRng } from './canvas'
+import {
+  NEBULA_CAPTURE_EVENT,
+  SpriteCache,
+  TAU,
+  clamp,
+  easeOutCubic,
+  hexToRgba,
+  lerp,
+  makeRng,
+  mixHex,
+} from './canvas'
 
 export interface NebulaCanvasProps {
   readonly face: NebulaFace
@@ -11,6 +30,15 @@ export interface NebulaCanvasProps {
   readonly playing: boolean
   /** Host event time of the latest completed answer; a change fires the echo. */
   readonly answerTime?: number
+  /** Recent prompts; all but the current one become companion stars. */
+  readonly points?: readonly NebulaPoint[]
+  /** Latest completed answer; its silhouette blends into the current galaxy. */
+  readonly answer?: { readonly text: string; readonly time: number }
+}
+
+interface CompanionStar extends CompanionOrbit {
+  /** First frame in which this id became a companion; drives the fade-in. */
+  readonly bornAt: number
 }
 
 interface ArmParticle {
@@ -110,11 +138,11 @@ const WIND_WOBBLE = WIND * 0.0875
  * wave, so the core turns fastest. Every layer adds a positive multiple of
  * `angle`, which is why no part of the nebula can ever read as counter-rotating.
  */
-export function NebulaCanvas({ face, point, settings, playing, answerTime }: NebulaCanvasProps): React.ReactElement {
+export function NebulaCanvas({ face, point, settings, playing, answerTime, points, answer }: NebulaCanvasProps): React.ReactElement {
   const hostRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const stateRef = useRef({ point, settings, playing, answerTime })
-  stateRef.current = { point, settings, playing, answerTime }
+  const stateRef = useRef({ point, settings, playing, answerTime, points, answer })
+  stateRef.current = { point, settings, playing, answerTime, points, answer }
 
   useEffect(() => {
     const host = hostRef.current
@@ -237,6 +265,30 @@ export function NebulaCanvas({ face, point, settings, playing, answerTime }: Neb
     // rotation invariants measured by verify-physics.mjs are untouched.
     let lastAnswerTime = stateRef.current.answerTime
     let echo = 0
+    // Twin silhouette: a completed answer lends its own 256-band outline to
+    // the question's galaxy. Only `profile` and colours are interpolated; the
+    // angle, winding and every radius keep their existing invariants.
+    let lastMorphTime = stateRef.current.answer?.time
+    let morphReady = false
+    let morphMix = 0
+    let morphTarget = 0
+    let morphFromBase = 0
+    let morphToBase = 0
+    let morphFromMagnitude = 0.55
+    let morphToMagnitude = 0.55
+    const morphFrom = new Float32Array(256)
+    const morphTo = new Float32Array(256)
+    const blendCache = new Map<string, NebulaScheme>()
+    // Session cluster cache. Rebuilt only when the point list, the selection or
+    // the palette changes; `bornAt` survives rebuilds so only newly promoted
+    // stars fade in instead of the whole halo blinking on every new message.
+    const bornAt = new Map<string, number>()
+    let clusterCache: readonly CompanionStar[] = []
+    let clusterPoints: readonly NebulaPoint[] | undefined
+    let clusterCurrentId: string | undefined
+    let clusterPalette = -1
+    // The exporter asks for one frame at a higher DPR; nothing else reads it.
+    let captureDpr: number | undefined
     let angle = 0
     let energy = 0.55
     let enter = 0
@@ -265,6 +317,33 @@ export function NebulaCanvas({ face, point, settings, playing, answerTime }: Neb
     // Read every frame rather than once at mount: the settings sheet can switch
     // the policy live, and `full` overrides a system that asks for less motion.
     const calm = (): boolean => !motionEnabled(stateRef.current.settings.motion)
+    const smoothstep = (t: number): number => t * t * (3 - 2 * t)
+
+    /**
+     * A colour halfway between the question's family and the answer's family.
+     * Quantized to 16 steps and cached: the morph spans 108 frames but only
+     * ever needs 17 distinct schemes, so no per-frame hex parsing is done.
+     */
+    const blendScheme = (from: NebulaScheme, to: NebulaScheme, t: number): NebulaScheme => {
+      if (t <= 0.001) return from
+      if (t >= 0.999) return to
+      const step = Math.round(t * 16)
+      const key = `${from.id}|${to.id}|${step}`
+      const hit = blendCache.get(key)
+      if (hit !== undefined) return hit
+      const k = step / 16
+      const mixed: NebulaScheme = {
+        id: `${from.id}~${to.id}`,
+        name: `${from.name}/${to.name}`,
+        arms: from.arms.map((color, index) => mixHex(color, to.arms[index]!, k)),
+        dust: from.dust.map((color, index) => mixHex(color, to.dust[index]!, k)),
+        core: mixHex(from.core, to.core, k),
+        accent: mixHex(from.accent, to.accent, k),
+        ambient: from.ambient,
+      }
+      blendCache.set(key, mixed)
+      return mixed
+    }
 
     const resize = (): void => {
       const rect = host.getBoundingClientRect()
@@ -308,7 +387,7 @@ export function NebulaCanvas({ face, point, settings, playing, answerTime }: Neb
       // draws more of the precomputed dust, stars and wisps. 8192 reproduces the
       // historical density, so nothing changes for anyone who keeps the default.
       const density = state.settings.dims === 32768 ? 1 : state.settings.dims === 16384 ? 0.85 : 0.69
-      const wantedDpr = clamp(window.devicePixelRatio || 1, 1, 1.75)
+      const wantedDpr = captureDpr ?? clamp(window.devicePixelRatio || 1, 1, 1.75)
       if (Math.abs(wantedDpr - dpr) > 0.01) dpr = wantedDpr
       const ctx = canvas.getContext('2d', { alpha: false })
       if (ctx === null) return
@@ -341,12 +420,73 @@ export function NebulaCanvas({ face, point, settings, playing, answerTime }: Neb
       }
       const echoAtCore = echo > 0 && !quiet ? Math.exp(-Math.pow(echo / 0.12, 2)) * 0.3 : 0
 
+      // A completed answer is analysed once, then its silhouette is eased into
+      // the question's outline over 1.8 s. A new question keeps the visible
+      // outline continuous by taking over `morphFrom` while the mix unwinds.
+      const answerState = state.answer
+      if (answerState?.time !== lastMorphTime) {
+        lastMorphTime = answerState?.time
+        if (answerState !== undefined && state.point !== undefined) {
+          const reply = analyze(answerState.text, state.settings.dims)
+          morphFrom.set(state.point.profile)
+          morphTo.set(reply.profile)
+          morphFromBase = state.point.schemeBase
+          morphToBase = reply.schemeBase
+          morphFromMagnitude = state.point.magnitude
+          morphToMagnitude = reply.magnitude
+          morphReady = true
+          morphTarget = 1
+          blendCache.clear()
+        } else {
+          morphTarget = 0
+        }
+      }
+      const morphStep = dt / 1.8
+      morphMix = clamp(morphMix + (morphTarget > morphMix ? morphStep : -morphStep * 1.7), 0, 1)
+      // Reduced motion lands on the final outline instead of animating to it.
+      const morphAmount = quiet ? morphTarget : smoothstep(morphMix)
+
+      // Session cluster: recomputed only when the history, the selection or the
+      // palette changes. Every earlier prompt becomes one companion star, so a
+      // long conversation accumulates a halo instead of replacing the galaxy.
+      const clusterSource = state.points ?? []
+      const clusterId = state.point?.id
+      if (
+        clusterSource !== clusterPoints ||
+        clusterId !== clusterCurrentId ||
+        state.settings.palette !== clusterPalette
+      ) {
+        clusterPoints = clusterSource
+        clusterCurrentId = clusterId
+        clusterPalette = state.settings.palette
+        const tail = clusterSource.filter((candidate) => candidate.id !== clusterId).slice(-COMPANION_LIMIT)
+        const live = new Set(tail.map((item) => item.id))
+        for (const key of bornAt.keys()) if (!live.has(key)) bornAt.delete(key)
+        clusterCache = tail.map((item, index) => {
+          let born = bornAt.get(item.id)
+          if (born === undefined) {
+            born = now
+            bornAt.set(item.id, born)
+          }
+          return { ...companionOrbit(item, index, tail.length), bornAt: born }
+        })
+      }
+      const cluster = clusterCache
+
       const pid = state.point?.id
       if (pid !== lastPid) {
         lastPid = pid
         if (pid !== undefined) {
           shock = 1
           enter = 0
+          // Hand the morph's base outline to the new question, so unwinding
+          // the previous answer never flashes the old galaxy back on screen.
+          if (morphReady && state.point !== undefined) {
+            morphFrom.set(state.point.profile)
+            morphFromBase = state.point.schemeBase
+            morphFromMagnitude = state.point.magnitude
+          }
+          morphTarget = 0
         }
       }
       if (enter < 1) enter = Math.min(1, enter + dt / 0.95)
@@ -378,6 +518,14 @@ export function NebulaCanvas({ face, point, settings, playing, answerTime }: Neb
         for (let i = 0; i < 256; i++) profile[i] = roam.a.profile[i]! + (roam.b.profile[i]! - roam.a.profile[i]!) * mix
         scheme = schemeOf(mix < 0.5 ? roam.a.schemeBase : roam.b.schemeBase, state.settings.palette)
         magnitude = roam.a.magnitude + (roam.b.magnitude - roam.a.magnitude) * mix
+      } else if (morphReady && morphAmount > 0.001) {
+        for (let i = 0; i < 256; i++) profile[i] = lerp(morphFrom[i]!, morphTo[i]!, morphAmount)
+        scheme = blendScheme(
+          schemeOf(morphFromBase, state.settings.palette),
+          schemeOf(morphToBase, state.settings.palette),
+          morphAmount,
+        )
+        magnitude = lerp(morphFromMagnitude, morphToMagnitude, morphAmount)
       } else if (state.point !== undefined) {
         profile.set(state.point.profile)
         scheme = schemeOf(state.point.schemeBase, state.settings.palette)
@@ -668,6 +816,41 @@ export function NebulaCanvas({ face, point, settings, playing, answerTime }: Neb
         }
       }
 
+      // Session cluster: one companion per earlier prompt, parked in the halo
+      // beyond the arm tips. Azimuth comes from the semantic map, colour from
+      // that prompt's own family, brightness from how recent it was. The halo
+      // rides the disc at 0.86x its angular velocity, always in the same
+      // direction, and newly promoted stars fade in over 1.1 s.
+      for (const companion of cluster) {
+        const fade = calm() ? 1 : easeOutCubic(clamp((now - companion.bornAt) / 1100, 0, 1))
+        if (fade <= 0.001) continue
+        const theta = companion.theta + angle * 0.8 * 0.86
+        const r = radius * companion.orbit
+        const x = cx + Math.cos(theta) * r
+        const y = cy + Math.sin(theta) * r * PERSPECTIVE
+        const starScheme = schemeOf(companion.schemeBase, state.settings.palette)
+        // A short arc of the orbit, never a radial spoke: companions read as
+        // orbiting bodies instead of beams aimed at the core.
+        ctx.globalAlpha = 1
+        ctx.beginPath()
+        ctx.ellipse(cx, cy, r, r * PERSPECTIVE, 0, theta - 0.12, theta + 0.12)
+        ctx.strokeStyle = hexToRgba(starScheme.accent, 0.3 * fade * companion.alpha)
+        ctx.lineWidth = 0.7
+        ctx.stroke()
+        const pulse = calm() ? 1 : 0.88 + Math.sin(now * 0.0013 + companion.phase) * 0.12
+        const size = companion.size * pulse * (0.7 + fade * 0.3)
+        ctx.globalAlpha = companion.alpha * fade * 0.9
+        ctx.drawImage(sprites.get(starScheme.accent), x - size * 2.6, y - size * 2.6, size * 5.2, size * 5.2)
+        ctx.globalAlpha = Math.min(1, companion.alpha * 1.5 * fade)
+        ctx.drawImage(sprites.get(starScheme.core), x - size * 0.65, y - size * 0.65, size * 1.3, size * 1.3)
+        if (companion.recency > 0.72) {
+          ctx.globalAlpha = companion.alpha * fade * 0.55
+          ctx.fillStyle = starScheme.core
+          ctx.fillRect(x - size * 1.9, y - 0.3, size * 3.8, 0.6)
+          ctx.fillRect(x - 0.3, y - size * 1.9, 0.6, size * 3.8)
+        }
+      }
+
       // A meteor crosses the field every ten-odd seconds: one gradient line
       // and one sprite, so the cost stays flat.
       if (meteorLife > 0 && !calm()) {
@@ -882,6 +1065,10 @@ export function NebulaCanvas({ face, point, settings, playing, answerTime }: Neb
       ctx.fillText(`VEC ${state.settings.dims}`, 12, 11)
       ctx.fillStyle = 'rgba(178, 210, 255, 0.36)'
       ctx.fillText(`Σ ${magnitude.toFixed(3)}`, 12, 24)
+      if (cluster.length > 0) {
+        ctx.fillStyle = 'rgba(178, 210, 255, 0.3)'
+        ctx.fillText(`CLUSTER ${cluster.length}/${COMPANION_LIMIT}`, 12, 37)
+      }
       ctx.textAlign = 'right'
       ctx.fillStyle = 'rgba(188, 222, 255, 0.5)'
       const schemeLabel = `${scheme.name} · ${paletteName}`
@@ -889,7 +1076,12 @@ export function NebulaCanvas({ face, point, settings, playing, answerTime }: Neb
       ctx.fillText(schemeLabel, width - 12, 11)
       ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
       ctx.fillStyle = 'rgba(178, 210, 255, 0.32)'
-      ctx.fillText(roam !== undefined ? `TOKEN ${roam.index + 1}` : `PHASE ${((angle % TAU) + TAU).toFixed(2)}`, width - 12, 24)
+      const phaseLabel = roam !== undefined
+        ? `TOKEN ${roam.index + 1}`
+        : morphReady && morphAmount > 0.02
+          ? `DUAL ${Math.round(morphAmount * 100)}%`
+          : `PHASE ${((angle % TAU) + TAU).toFixed(2)}`
+      ctx.fillText(phaseLabel, width - 12, 24)
       ctx.textAlign = 'left'
       ctx.textBaseline = 'bottom'
       ctx.fillStyle = 'rgba(178, 210, 255, 0.34)'
@@ -901,6 +1093,24 @@ export function NebulaCanvas({ face, point, settings, playing, answerTime }: Neb
       ctx.textAlign = 'right'
       ctx.fillText('DSH / NEBULA', width - 12, height - 10)
       ctx.shadowBlur = 0
+    }
+
+    /**
+     * The card exporter needs a sharper frame than the on-screen DPR. One
+     * synchronous repaint at the requested scale is copied into a separate
+     * canvas before the next animation frame restores the normal backing size.
+     */
+    const onCapture = (event: Event): void => {
+      const detail = (event as CustomEvent<{ scale: number; frame: HTMLCanvasElement | null }>).detail
+      if (detail === undefined) return
+      captureDpr = clamp(detail.scale, 1, 3)
+      draw(performance.now())
+      const copy = document.createElement('canvas')
+      copy.width = canvas.width
+      copy.height = canvas.height
+      copy.getContext('2d')?.drawImage(canvas, 0, 0)
+      detail.frame = copy
+      captureDpr = undefined
     }
 
     const frame = (now: number): void => {
@@ -925,6 +1135,7 @@ export function NebulaCanvas({ face, point, settings, playing, answerTime }: Neb
     host.addEventListener('pointermove', onPointerMove, { passive: true })
     host.addEventListener('pointerleave', onPointerLeave)
     host.addEventListener('pointerdown', onPointerDown, { passive: true })
+    host.addEventListener(NEBULA_CAPTURE_EVENT, onCapture)
     const observer = new ResizeObserver(() => {
       resize()
     })
@@ -948,6 +1159,7 @@ export function NebulaCanvas({ face, point, settings, playing, answerTime }: Neb
       host.removeEventListener('pointermove', onPointerMove)
       host.removeEventListener('pointerleave', onPointerLeave)
       host.removeEventListener('pointerdown', onPointerDown)
+      host.removeEventListener(NEBULA_CAPTURE_EVENT, onCapture)
       observer.disconnect()
       intersection.disconnect()
       document.removeEventListener('visibilitychange', onVisibility)

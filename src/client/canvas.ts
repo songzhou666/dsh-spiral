@@ -2,6 +2,9 @@
 
 export const TAU = Math.PI * 2
 
+/** Event used by the card exporter to request one high-DPR repaint. */
+export const NEBULA_CAPTURE_EVENT = 'dnebula:capture'
+
 export function clamp(value: number, min: number, max: number): number {
   return value < min ? min : value > max ? max : value
 }
@@ -38,6 +41,23 @@ export function hexToRgba(hex: string, alpha: number): string {
   const g = (int >> 8) & 0xff
   const b = int & 0xff
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+/** Blend two `#rrggbb` colours: `t = 0` returns `a`, `t = 1` returns `b`. */
+export function mixHex(a: string, b: string, t: number): string {
+  const parse = (value: string): number => {
+    const raw = value.startsWith('#') ? value.slice(1) : value
+    const body = raw.length === 3 ? raw.split('').map((ch) => ch + ch).join('') : raw
+    const int = Number.parseInt(body, 16)
+    return Number.isNaN(int) ? 0 : int
+  }
+  const pa = parse(a)
+  const pb = parse(b)
+  const channel = (shift: number): string =>
+    Math.round(((pa >> shift) & 0xff) + (((pb >> shift) & 0xff) - ((pa >> shift) & 0xff)) * t)
+      .toString(16)
+      .padStart(2, '0')
+  return `#${channel(16)}${channel(8)}${channel(0)}`
 }
 
 const SPRITE_SIZE = 64

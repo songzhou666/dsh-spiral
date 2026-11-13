@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { PALETTE_NAMES, constellationId } from './engine'
+import { PALETTE_NAMES, constellationId, schemeOf } from './engine'
 import { formatClock } from './store'
 import { motionEnabled, subscribeSystemMotion, systemPrefersReducedMotion } from './motion'
 import type { NebulaFace } from './types'
 import { NebulaCanvas } from './NebulaCanvas'
 import { MapCanvas } from './NebulaMap'
+import { exportStarCard } from './exportCard'
 import {
   IconChevron,
   IconCollapse,
+  IconExport,
   IconMoon,
   IconPalette,
   IconPlay,
@@ -47,9 +49,15 @@ export function Panel({ face, onClose, onHeadPointerDown, onHeadPointerMove, onH
   const [sheet, setSheet] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [systemReduced, setSystemReduced] = useState(() => systemPrefersReducedMotion())
+  const [exported, setExported] = useState(false)
   const confirmTimer = useRef<number | undefined>(undefined)
+  const exportTimer = useRef<number | undefined>(undefined)
+  const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => subscribeSystemMotion(() => setSystemReduced(systemPrefersReducedMotion())), [])
+  useEffect(() => () => {
+    if (exportTimer.current !== undefined) window.clearTimeout(exportTimer.current)
+  }, [])
 
   const settings = snapshot.settings
 
@@ -89,8 +97,31 @@ export function Panel({ face, onClose, onHeadPointerDown, onHeadPointerMove, onH
 
   const paletteName = PALETTE_NAMES[settings.palette % PALETTE_NAMES.length] ?? PALETTE_NAMES[0]
 
+  const onExport = (): void => {
+    if (current === undefined) return
+    const host = rootRef.current?.querySelector('.dnp-canvas-host') ?? null
+    void exportStarCard(host, {
+      text: current.text,
+      time: current.time,
+      tokens: current.tokens,
+      magnitude: current.magnitude,
+      mapX: current.mapX,
+      mapY: current.mapY,
+      callSign: constellationId(current.text),
+      paletteName,
+      dims: settings.dims,
+      cluster: Math.max(0, points.length - 1),
+      scheme: schemeOf(current.schemeBase, settings.palette),
+    }).then((card) => {
+      if (card === undefined) return
+      setExported(true)
+      if (exportTimer.current !== undefined) window.clearTimeout(exportTimer.current)
+      exportTimer.current = window.setTimeout(() => setExported(false), 1400)
+    })
+  }
+
   return (
-    <div className="dnp" data-enabled={enabled} data-playing={playing}>
+    <div ref={rootRef} className="dnp" data-enabled={enabled} data-playing={playing}>
       <header
         className="dnp-head"
         onPointerDown={onHeadPointerDown}
@@ -161,7 +192,15 @@ export function Panel({ face, onClose, onHeadPointerDown, onHeadPointerMove, onH
 
       <div className="dnp-stage">
         <section className="dnp-view dnp-nebula">
-          <NebulaCanvas face={face} point={current} settings={settings} playing={playing} answerTime={snapshot.answer?.time} />
+          <NebulaCanvas
+            face={face}
+            point={current}
+            settings={settings}
+            playing={playing}
+            answerTime={snapshot.answer?.time}
+            points={points}
+            answer={snapshot.answer}
+          />
           {!enabled && (
             <div className="dnp-overlay">
               <span className="dnp-overlay-icon">
@@ -223,6 +262,17 @@ export function Panel({ face, onClose, onHeadPointerDown, onHeadPointerMove, onH
           )}
         </div>
         <div className="dnp-foot-side">
+          <button
+            type="button"
+            className="dnp-icon dnp-export"
+            data-done={exported}
+            disabled={current === undefined}
+            title={exported ? '星图卡片已导出' : '导出星图卡片 PNG'}
+            aria-label={exported ? '星图卡片已导出' : '导出星图卡片 PNG'}
+            onClick={onExport}
+          >
+            {exported ? <IconSpark size={14} /> : <IconExport size={15} />}
+          </button>
           <span className="dnp-mode" data-playing={playing}>
             {playing ? 'ROAM' : enabled ? 'SNAPSHOT' : 'SLEEP'}
           </span>
